@@ -10,7 +10,7 @@
   "dependencies": {
     "@types/node": "^13.7.7",
     "@types/request": "^2.48.4",
-    "discord-bot-manager": "file:../DiscordBotManager",
+    "discord-dbm": "^1.0.0",
     "snoowrap": "^1.21.0"
   },
   "author": "Emil Norén",

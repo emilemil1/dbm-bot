@@ -1,4 +1,4 @@
-import { Module, BotUtils } from "discord-bot-manager";
+import { Module, BotUtils } from "discord-dbm";
 import { Message } from "discord.js";
 import Reddit from "snoowrap";
 

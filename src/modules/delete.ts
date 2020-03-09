@@ -1,4 +1,4 @@
-import { Module } from "discord-bot-manager";
+import { Module } from "discord-dbm";
 import { Message, TextChannel, DMChannel, GroupDMChannel } from "discord.js";
 
 class Delete implements Module {

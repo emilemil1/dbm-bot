@@ -1,4 +1,4 @@
-import { Module } from "discord-bot-manager";
+import { Module } from "discord-dbm";
 import { Message } from "discord.js";
 
 class Test implements Module {

@@ -1,4 +1,4 @@
-import { BotUtils } from "discord-bot-manager";
+import { BotUtils } from "discord-dbm";
 import Reddit from "snoowrap";
 class DankMeme {
     constructor() {
