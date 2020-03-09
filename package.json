@@ -1,0 +1,25 @@
+{
+  "name": "lagom-bot",
+  "version": "1.0.0",
+  "description": "Lagom bot.",
+  "main": "src/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/emilemil1/lagom.git"
+  },
+  "dependencies": {
+    "@types/node": "^13.7.7",
+    "@types/request": "^2.48.4",
+    "discord-bot-manager": "file:../DiscordBotManager",
+    "snoowrap": "^1.21.0"
+  },
+  "author": "Emil Norén",
+  "license": "ISC",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^2.21.0",
+    "@typescript-eslint/parser": "^2.21.0",
+    "eslint": "^6.8.0",
+    "typescript": "^3.8.3"
+  },
+  "type": "module"
+}

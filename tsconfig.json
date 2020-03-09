@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "outDir": "out",
+        "esModuleInterop": true,
+		"target": "es2018",
+		"strict": true,
+        "moduleResolution": "Node",
+        "module": "es6",
+        "sourceMap": true,
+        "allowSyntheticDefaultImports": true
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "compileOnSave": true
+}

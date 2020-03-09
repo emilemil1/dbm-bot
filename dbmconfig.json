@@ -1,0 +1,14 @@
+{
+    "secrets": {
+        "loginToken": "LagomLoginToken",
+        "redditClientSecret": "LagomRedditClientSecret",
+        "redditPassword": "LagomRedditPassword"
+    },
+    "values": {
+        "redditClientId": "1BjOU9slqMOBXQ",
+        "redditUsername": "emilemil1"
+    },
+    "modules": [
+        "./out/modules"
+    ]
+}
