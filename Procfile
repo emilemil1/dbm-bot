@@ -1,1 +1,1 @@
-worker: node out/start
+worker: node out/main
