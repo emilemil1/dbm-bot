@@ -1,11 +1,11 @@
 import { BotUtils } from "discord-dbm";
 import Reddit from "snoowrap";
-class DankMeme {
+class RedditMod {
     constructor() {
         this.configuration = {
             name: "Dank Memes",
             description: "",
-            commands: ["dankmeme"]
+            commands: ["dankmeme", "cursed"]
         };
         this.reddit = new Reddit({
             userAgent: "A Discord bot using the Snoowrap npm package to display some dank memes.",
@@ -16,10 +16,21 @@ class DankMeme {
         });
     }
     onCommand(command, message, attempt = 1) {
+        let sub;
+        switch (command[0]) {
+            case "dankmeme":
+                sub = "dankmemes";
+                break;
+            case "cursed":
+                sub = "cursedimages";
+                break;
+            default:
+                sub = "dankmemes";
+        }
         if (attempt === 5) {
             message.channel.send("Oops. It seems we've run out of memes. (try again)");
         }
-        this.reddit.getSubreddit("dankmemes").getRandomSubmission().then(submission => {
+        this.reddit.getSubreddit(sub).getRandomSubmission().then(submission => {
             switch (submission.url.substring(submission.url.lastIndexOf(".") + 1)) {
                 case "jpg":
                 case "jpeg":
@@ -54,5 +65,5 @@ class DankMeme {
         });
     }
 }
-export default new DankMeme();
-//# sourceMappingURL=dankmeme.js.map
+export default new RedditMod();
+//# sourceMappingURL=reddit.js.map
