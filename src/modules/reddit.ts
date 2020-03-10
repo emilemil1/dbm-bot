@@ -2,11 +2,11 @@ import { Module, BotUtils } from "discord-dbm";
 import { Message } from "discord.js";
 import Reddit from "snoowrap";
 
-class DankMeme implements Module {
+class RedditMod implements Module {
     configuration = {
         name: "Dank Memes",
         description: "",
-        commands: ["dankmeme"]
+        commands: ["dankmeme", "cursed"]
     }
     reddit: Reddit;
 
@@ -21,11 +21,24 @@ class DankMeme implements Module {
     }
     
     onCommand(command: string[], message: Message, attempt = 1): void {
+        let sub;
+
+        switch (command[0]) {
+        case "dankmeme": 
+            sub = "dankmemes";
+            break;
+        case "cursed":
+            sub = "cursedimages";
+            break;
+        default:
+            sub = "dankmemes";
+        }
+
         if (attempt === 5) {
             message.channel.send("Oops. It seems we've run out of memes. (try again)");
         }
         
-        this.reddit.getSubreddit("dankmemes").getRandomSubmission().then(submission => {
+        this.reddit.getSubreddit(sub).getRandomSubmission().then(submission => {
             switch(submission.url.substring(submission.url.lastIndexOf(".")+1)) {
             case "jpg":
             case "jpeg":
@@ -62,4 +75,4 @@ class DankMeme implements Module {
     }
 }
 
-export default new DankMeme();
+export default new RedditMod();
