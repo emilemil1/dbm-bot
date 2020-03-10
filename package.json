@@ -23,6 +23,6 @@
   },
   "type": "module",
   "scripts": {
-    "start": "node out/main.js"
+    "start": "node out/main"
   }
 }
