@@ -27,10 +27,13 @@ class RedditMod {
             default:
                 sub = "dankmemes";
         }
-        if (attempt === 5) {
+        if (attempt === 10) {
             message.channel.send("Oops. It seems we've run out of memes. (try again)");
         }
         this.reddit.getSubreddit(sub).getRandomSubmission().then(submission => {
+            if (submission.url === undefined) {
+                return this.onCommand(command, message, ++attempt);
+            }
             switch (submission.url.substring(submission.url.lastIndexOf(".") + 1)) {
                 case "jpg":
                 case "jpeg":
