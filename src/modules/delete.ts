@@ -7,6 +7,7 @@ class Delete implements Module {
         description: "",
         commands: ["delete"]
     }
+    
     onCommand(command: string[], message: Message): void {
         this.searchForMessage(message.channel, message.client.user.id).then(id => {
             if (id !== undefined) {
