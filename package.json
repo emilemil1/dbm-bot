@@ -10,7 +10,7 @@
   "dependencies": {
     "@types/node": "^13.9.0",
     "@types/request": "^2.48.4",
-    "discord-dbm": "^1.1.0",
+    "discord-dbm": "^1.1.1",
     "fuse.js": "^4.0.0-beta",
     "snoowrap": "^1.21.0"
   },
