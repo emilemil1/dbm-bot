@@ -1,7 +1,7 @@
 import { Module } from "discord-dbm";
 import Discord, { Message } from "discord.js";
 import Fuse, { FuseOptions } from "fuse.js";
-import fetch, { Headers } from "node-fetch";
+import fetch from "node-fetch";
 
 interface CommandParts {
     search?: string;
@@ -84,8 +84,6 @@ class MTG implements Module {
             url += "?set=" + commandParts.set;
         }
 
-        const headers = new Headers();
-        headers.append("Cache-Control", "max'age=86400");
         const options = {
             headers: {
                 "Cache-Control": "max'age=86400"
@@ -112,8 +110,6 @@ class MTG implements Module {
         }
         url += "&order=released";
 
-        const headers = new Headers();
-        headers.append("Cache-Control", "max'age=86400");
         const options = {
             headers: {
                 "Cache-Control": "max'age=86400"

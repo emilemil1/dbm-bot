@@ -1,6 +1,6 @@
 import Discord from "discord.js";
 import Fuse from "fuse.js";
-import fetch, { Headers } from "node-fetch";
+import fetch from "node-fetch";
 class MTG {
     constructor() {
         this.configuration = {
@@ -37,8 +37,6 @@ class MTG {
         if (commandParts.set) {
             url += "?set=" + commandParts.set;
         }
-        const headers = new Headers();
-        headers.append("Cache-Control", "max'age=86400");
         const options = {
             headers: {
                 "Cache-Control": "max'age=86400"
@@ -62,8 +60,6 @@ class MTG {
             url += "%20set:" + commandParts.set;
         }
         url += "&order=released";
-        const headers = new Headers();
-        headers.append("Cache-Control", "max'age=86400");
         const options = {
             headers: {
                 "Cache-Control": "max'age=86400"
