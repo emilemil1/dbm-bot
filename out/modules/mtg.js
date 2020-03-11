@@ -112,7 +112,8 @@ class MTG {
         }
         const data = response.data;
         const setList = data
-            .filter(set => !set.name.includes("Oversized"))
+            .filter(set => set.set_type !== "memorabilia")
+            .filter(set => set.set_type !== "promo")
             .map(obj => {
             return {
                 code: obj.code,

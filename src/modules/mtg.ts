@@ -167,7 +167,8 @@ class MTG implements Module {
         }
         const data = response.data as SetResponseObject[];
         const setList = data
-            .filter(set => !set.name.includes("Oversized"))
+            .filter(set => set.set_type !== "memorabilia")
+            .filter(set => set.set_type !== "promo")
             .map(obj => {
                 return {
                     code: obj.code,
