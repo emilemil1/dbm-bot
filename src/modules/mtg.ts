@@ -24,7 +24,8 @@ interface CardLegalities {
 interface SearchResponseObject {
     name: string;
     prices: {
-        eur: string;
+        eur?: string;
+        usd?: string;
     };
     legalities: CardLegalities;
     set: string;
@@ -122,7 +123,12 @@ class MTG implements Module {
     private successResponse(card: SearchResponseObject, message: Message): void {
         const footer = [];
         footer.push(this.getLegality(card.legalities));
-        footer.push(card.prices.eur + " €");
+        if (card.prices.eur !== null) {
+            footer.push(card.prices.eur + " €");
+        } else if (card.prices.usd !== null) {
+            footer.push(card.prices.usd + " €");
+        }
+        
 
         const embed = new Discord.RichEmbed()
             .setImage(card.image_uris.border_crop)

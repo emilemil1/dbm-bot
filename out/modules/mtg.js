@@ -73,7 +73,12 @@ class MTG {
     successResponse(card, message) {
         const footer = [];
         footer.push(this.getLegality(card.legalities));
-        footer.push(card.prices.eur + " €");
+        if (card.prices.eur !== null) {
+            footer.push(card.prices.eur + " €");
+        }
+        else if (card.prices.usd !== null) {
+            footer.push(card.prices.usd + " €");
+        }
         const embed = new Discord.RichEmbed()
             .setImage(card.image_uris.border_crop)
             .setAuthor(`${card.name} (${card.set.toUpperCase()})`, undefined, card.scryfall_uri)
