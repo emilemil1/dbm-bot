@@ -11,7 +11,7 @@ class MTG {
         this.init();
     }
     async onCommand(command, message) {
-        if (await this.init() || command.length === 1) {
+        if (!(await this.init()) || command.length === 1) {
             return;
         }
         const commandParts = this.getCommandParts(command);
@@ -23,13 +23,13 @@ class MTG {
         const commandParts = {};
         const setStart = command.findIndex(s => s.startsWith("("));
         const setEnd = command.findIndex(s => s.endsWith(")"));
-        if (setStart !== -1 && setEnd !== -1) {
-            const results = this.sets.search(command.splice(setStart, setEnd).join(" ").substring(0, 32));
+        if (setStart !== -1 && setEnd !== -1 && setEnd >= setStart) {
+            const results = this.sets.search(command.splice(setStart, (setEnd - setStart) + 1).join(" ").replace(/[()]/g, "").substring(0, 32));
             if (results.length !== 0) {
-                commandParts.set = results[0].code;
+                commandParts.set = results[0];
             }
         }
-        commandParts.search = command.join(" ");
+        commandParts.search = command.splice(1).join(" ");
         return commandParts;
     }
     async fuzzy(commandParts, message) {
@@ -44,15 +44,15 @@ class MTG {
         };
         const response = await (await fetch(url, options)).json();
         if (response.status === 404) {
-            const data = response.data;
-            if (data.type !== "ambiguous") {
+            const error = response;
+            if (error.type !== "ambiguous") {
                 return;
             }
             else {
                 return this.extendSearch(commandParts, message);
             }
         }
-        this.successResponse(response.data, message);
+        this.successResponse(response, message);
     }
     async extendSearch(commandParts, message) {
         let url = "https://api.scryfall.com/cards/search?q=" + commandParts.search;
@@ -68,14 +68,17 @@ class MTG {
         const response = await (await fetch(url, options)).json();
         if (response.status === 404)
             return;
-        this.successResponse(response.data, message);
+        this.successResponse(response.data[0], message);
     }
     successResponse(card, message) {
+        const footer = [];
+        footer.push(this.getLegality(card.legalities));
+        footer.push(card.prices.eur + " €");
         const embed = new Discord.RichEmbed()
             .setImage(card.image_uris.border_crop)
             .setAuthor(`${card.name} (${card.set.toUpperCase()})`, undefined, card.scryfall_uri)
-            .setFooter(`${this.getLegality(card.legalities)}${card.prices.eur ? "• €" + card.prices.eur : ""}`);
-        message.channel.sendEmbed(embed);
+            .setFooter(`${footer.filter(s => s !== undefined && s !== "").join(" • ")}`);
+        message.channel.send(embed);
     }
     getLegality(legalities) {
         const results = [];
@@ -99,14 +102,16 @@ class MTG {
     }
     async getSets() {
         const response = await (await fetch("https://api.scryfall.com/sets")).json();
-        if (response.status !== 200) {
+        if (response.data === undefined) {
             return false;
         }
-        const data = (await response.json()).data;
-        const setList = data.map(obj => {
+        const data = response.data;
+        const setList = data
+            .filter(set => !set.name.includes("Oversized"))
+            .map(obj => {
             return {
                 code: obj.code,
-                name: obj.name
+                name: obj.name,
             };
         });
         this.sets = new Fuse(setList, {

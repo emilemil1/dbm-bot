@@ -8,13 +8,11 @@ interface CommandParts {
     set?: string;
 }
 
-interface FuseResult {
-    code: string;
-}
-
 interface SetResponseObject {
     code: string;
     name: string;
+    parent_set_code?: string;
+    set_type: string;
 }
 
 interface CardLegalities {
@@ -53,9 +51,10 @@ class MTG implements Module {
     }
 
     async onCommand(command: string[], message: Message): Promise<void> {
-        if (await this.init() || command.length === 1) {
+        if (!(await this.init()) || command.length === 1) {
             return;
         }
+
         const commandParts = this.getCommandParts(command);
         if (commandParts.search === undefined) return;
 
@@ -67,14 +66,14 @@ class MTG implements Module {
 
         const setStart = command.findIndex(s => s.startsWith("("));
         const setEnd = command.findIndex(s => s.endsWith(")"));
-        if (setStart !== -1 && setEnd !== -1) {
-            const results = this.sets.search(command.splice(setStart, setEnd).join(" ").substring(0,32)) as FuseResult[];
+        if (setStart !== -1 && setEnd !== -1 && setEnd >= setStart) {
+            const results = this.sets.search(command.splice(setStart, (setEnd - setStart) + 1).join(" ").replace(/[()]/g, "").substring(0,32)) as string[];
             if (results.length !== 0) {
-                commandParts.set = results[0].code;
-            } 
+                commandParts.set = results[0];
+            }
         }
         
-        commandParts.search = command.join(" ");
+        commandParts.search = command.splice(1).join(" ");
         return commandParts;
     }
 
@@ -90,17 +89,16 @@ class MTG implements Module {
             }
         };
         const response = await (await fetch(url, options)).json();
-
         if (response.status === 404) {
-            const data = response.data as ErrorResponseObject;
-            if (data.type !== "ambiguous") {
+            const error = response as ErrorResponseObject;
+            if (error.type !== "ambiguous") {
                 return;
             } else {
                 return this.extendSearch(commandParts, message);
             }
         }
 
-        this.successResponse(response.data, message);
+        this.successResponse(response, message);
     }
 
     private async extendSearch(commandParts: CommandParts, message: Message): Promise<void> {
@@ -116,19 +114,22 @@ class MTG implements Module {
             }
         };
         const response = await (await fetch(url, options)).json();
-
         if (response.status === 404) return;
 
-        this.successResponse(response.data, message);
+        this.successResponse(response.data[0], message);
     }
 
     private successResponse(card: SearchResponseObject, message: Message): void {
+        const footer = [];
+        footer.push(this.getLegality(card.legalities));
+        footer.push(card.prices.eur + " €");
+
         const embed = new Discord.RichEmbed()
             .setImage(card.image_uris.border_crop)
             .setAuthor(`${card.name} (${card.set.toUpperCase()})`, undefined, card.scryfall_uri)
-            .setFooter(`${this.getLegality(card.legalities)}${card.prices.eur ? "• €" + card.prices.eur : ""}`);
+            .setFooter(`${footer.filter(s => s !== undefined && s !== "").join(" • ")}`);
 
-        message.channel.sendEmbed(embed);
+        message.channel.send(embed);
     }
 
     private getLegality(legalities: SearchResponseObject["legalities"]): string {
@@ -155,16 +156,19 @@ class MTG implements Module {
 
     private async getSets(): Promise<boolean> {
         const response = await (await fetch("https://api.scryfall.com/sets")).json();
-        if (response.status !== 200) {
+        if (response.data === undefined) {
             return false;
         }
-        const data = (await response.json()).data as SetResponseObject[];
-        const setList = data.map(obj => {
-            return {
-                code: obj.code,
-                name: obj.name
-            };
-        });
+        const data = response.data as SetResponseObject[];
+        const setList = data
+            .filter(set => !set.name.includes("Oversized"))
+            .map(obj => {
+                return {
+                    code: obj.code,
+                    name: obj.name,
+
+                };
+            });
         this.sets = new Fuse(setList, {
             id: "code",
             shouldSort: true,
