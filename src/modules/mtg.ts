@@ -81,7 +81,7 @@ class MTG implements Module {
     private async fuzzy(commandParts: CommandParts, message: Message): Promise<void> {
         let url = "https://api.scryfall.com/cards/named?fuzzy=" + commandParts.search;
         if (commandParts.set) {
-            url += "?set=" + commandParts.set;
+            url += "&set=" + commandParts.set;
         }
 
         const options = {

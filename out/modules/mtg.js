@@ -35,7 +35,7 @@ class MTG {
     async fuzzy(commandParts, message) {
         let url = "https://api.scryfall.com/cards/named?fuzzy=" + commandParts.search;
         if (commandParts.set) {
-            url += "?set=" + commandParts.set;
+            url += "&set=" + commandParts.set;
         }
         const options = {
             headers: {
