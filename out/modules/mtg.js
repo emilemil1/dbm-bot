@@ -1,5 +1,6 @@
 import Discord from "discord.js";
 import Fuse from "fuse.js";
+import fetch from "node-fetch";
 class MTG {
     constructor() {
         this.configuration = {
@@ -38,10 +39,12 @@ class MTG {
         }
         const headers = new Headers();
         headers.append("Cache-Control", "max'age=86400");
-        const request = new Request(url, {
-            headers
-        });
-        const response = await (await fetch(request)).json();
+        const options = {
+            headers: {
+                "Cache-Control": "max'age=86400"
+            }
+        };
+        const response = await (await fetch(url, options)).json();
         if (response.status === 404) {
             const data = response.data;
             if (data.type !== "ambiguous") {
@@ -61,10 +64,12 @@ class MTG {
         url += "&order=released";
         const headers = new Headers();
         headers.append("Cache-Control", "max'age=86400");
-        const request = new Request(url, {
-            headers
-        });
-        const response = await (await fetch(request)).json();
+        const options = {
+            headers: {
+                "Cache-Control": "max'age=86400"
+            }
+        };
+        const response = await (await fetch(url, options)).json();
         if (response.status === 404)
             return;
         this.successResponse(response.data, message);
