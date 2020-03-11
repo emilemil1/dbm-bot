@@ -1,7 +1,7 @@
 import { Module } from "discord-dbm";
 import Discord, { Message } from "discord.js";
 import Fuse, { FuseOptions } from "fuse.js";
-import fetch from "node-fetch";
+import fetch, { Headers } from "node-fetch";
 
 interface CommandParts {
     search?: string;

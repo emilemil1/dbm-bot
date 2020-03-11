@@ -1,6 +1,6 @@
 import Discord from "discord.js";
 import Fuse from "fuse.js";
-import fetch from "node-fetch";
+import fetch, { Headers } from "node-fetch";
 class MTG {
     constructor() {
         this.configuration = {
