@@ -1,5 +1,5 @@
 import { Module } from "discord-dbm";
-import { Message, RichEmbed } from "discord.js";
+import Discord, { Message } from "discord.js";
 import Fuse, { FuseOptions } from "fuse.js";
 
 interface CommandParts {
@@ -122,7 +122,7 @@ class MTG implements Module {
     }
 
     private successResponse(card: SearchResponseObject, message: Message): void {
-        const embed = new RichEmbed()
+        const embed = new Discord.RichEmbed()
             .setImage(card.image_uris.border_crop)
             .setAuthor(`${card.name} (${card.set.toUpperCase()})`, undefined, card.scryfall_uri)
             .setFooter(`${this.getLegality(card.legalities)}${card.prices.eur ? "• €" + card.prices.eur : ""}`);
