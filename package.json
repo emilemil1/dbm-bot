@@ -9,9 +9,11 @@
   },
   "dependencies": {
     "@types/node": "^13.9.0",
+    "@types/node-fetch": "^2.5.5",
     "@types/request": "^2.48.4",
     "discord-dbm": "^1.1.1",
     "fuse.js": "^4.0.0-beta",
+    "node-fetch": "^2.6.0",
     "snoowrap": "^1.21.0"
   },
   "author": "Emil Norén",
@@ -24,7 +26,7 @@
   },
   "type": "module",
   "scripts": {
-    "start": "tsc && node out/main"
+    "start": "node out/main"
   },
   "engines": {
     "node": "13.9.0"
