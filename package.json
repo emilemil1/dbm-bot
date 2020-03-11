@@ -8,17 +8,17 @@
     "url": "https://github.com/emilemil1/lagom.git"
   },
   "dependencies": {
-    "@types/node": "^13.7.7",
+    "@types/node": "^13.9.0",
     "@types/request": "^2.48.4",
-    "discord-dbm": "^1.0.0",
+    "discord-dbm": "^1.1.0",
     "fuse.js": "^4.0.0-beta",
     "snoowrap": "^1.21.0"
   },
   "author": "Emil Norén",
   "license": "ISC",
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^2.21.0",
-    "@typescript-eslint/parser": "^2.21.0",
+    "@typescript-eslint/eslint-plugin": "^2.23.0",
+    "@typescript-eslint/parser": "^2.23.0",
     "eslint": "^6.8.0",
     "typescript": "^3.8.3"
   },
