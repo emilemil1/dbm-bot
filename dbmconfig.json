@@ -1,14 +1,14 @@
 {
     "secrets": {
-        "loginToken": "LagomLoginToken",
-        "redditClientSecret": "LagomRedditClientSecret",
-        "redditPassword": "LagomRedditPassword"
+        "loginToken": "ChewLoginToken"
     },
     "values": {
-        "redditClientId": "1BjOU9slqMOBXQ",
-        "redditUsername": "emilemil1"
     },
     "modules": [
         "./out/modules"
-    ]
+    ],
+    "trigger": {
+        "word": "plz",
+        "spacing": true
+    }
 }
