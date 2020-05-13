@@ -1,17 +1,17 @@
 {
-  "name": "chew-bot",
+  "name": "lagom-bot",
   "version": "1.0.0",
-  "description": "Chew Bot",
+  "description": "Lagom bot.",
   "main": "src/main.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/emilemil1/chew-bot.git"
+    "url": "https://github.com/emilemil1/lagom.git"
   },
   "dependencies": {
     "@types/node": "^13.9.0",
     "@types/node-fetch": "^2.5.5",
     "@types/request": "^2.48.4",
-    "discord-dbm": "^1.1.5",
+    "discord-dbm": "^1.1.1",
     "fuse.js": "^4.0.0-beta",
     "node-fetch": "^2.6.0",
     "snoowrap": "^1.21.0"
