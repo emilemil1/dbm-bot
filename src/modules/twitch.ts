@@ -178,15 +178,19 @@ class Twitch implements CommandModule, WebhookModule {
             message.channel.send(channelInfo.error);
             return;
         }
+        console.log("1");
 
         guild.channels[channel] = null;
         if (this.data.channels[channel] === undefined) {
+            console.log("2");
             this.data.channels[channel] = {
                 guildIds: {},
                 count: 0
             };
+            console.log("3");
             await this.subscribe(channelInfo, true);
         }
+        console.log("4");
         this.data.channels[channel].guildIds[message.guild.id] = null;
         this.data.channels[channel].count++;
         message.channel.send("Notifications enabled for Twitch channel: " + channelInfo.displayName);
