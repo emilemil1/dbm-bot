@@ -6,8 +6,9 @@ class Twitch {
         this.configuration = {
             name: "Twitch Notifier",
             description: "",
-            type: [ModuleType.command],
-            commands: ["twitch"]
+            type: [ModuleType.command, ModuleType.webhook],
+            commands: ["twitch"],
+            webhook: [/https:\/\/api\.twitch\.tv/]
         };
         this.data = {
             guilds: {},
@@ -45,6 +46,9 @@ class Twitch {
             this.toggleNotify(command[2], message);
             return;
         }
+    }
+    async hook(message) {
+        return 200;
     }
     help(message) {
         message.channel.send(dedent `
@@ -242,9 +246,6 @@ class Twitch {
         else {
             return "Could not send data to Twitch, try again later.";
         }
-    }
-    async receiveWebhook(message) {
-        return;
     }
 }
 export default new Twitch();

@@ -2,6 +2,7 @@ import { CommandModule, ModuleType, BotUtils, PersistenceData } from "discord-db
 import { Message } from "discord.js";
 import dedent from "dedent";
 import fetch, { RequestInit } from "node-fetch";
+import { WebhookModule } from "discord-dbm/out/core/module";
 
 interface TwitchChannelNames {
     [key: string]: null;
@@ -45,12 +46,13 @@ interface Params {
     [key: string]: string;
 }
 
-class Twitch implements CommandModule {
+class Twitch implements CommandModule, WebhookModule {
     configuration = {
         name: "Twitch Notifier",
         description: "",
         type: [ModuleType.command, ModuleType.webhook],
-        commands: ["twitch"]
+        commands: ["twitch"],
+        webhook: [/https:\/\/api\.twitch\.tv/]
     }
     data: Persistence = {
         guilds: {},
@@ -92,6 +94,10 @@ class Twitch implements CommandModule {
             this.toggleNotify(command[2], message);
             return;
         }
+    }
+
+    async hook(message: string): Promise<number> {
+        return 200;
     }
 
     help(message: Message): void {
@@ -303,10 +309,6 @@ class Twitch implements CommandModule {
         } else {
             return "Could not send data to Twitch, try again later.";
         }
-    }
-
-    async receiveWebhook(message: string): Promise<string|undefined> {
-        return;
     }
 }
 
