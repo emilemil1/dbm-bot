@@ -4,8 +4,7 @@
         "url": "${ChewUrl}",
         "webhookPort": "${ChewWebhookPort}",
         "twitchId": "hympc47j5z5xcffpv4u3212k2wjs4u",
-        "twitchSecret": "${ChewTwitchSecret}",
-        "firebaseKey": "${ChewFirebaseKey}"
+        "twitchSecret": "${ChewTwitchSecret}"
     },
     "modules": [
         "./out/modules"
