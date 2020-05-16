@@ -1,4 +1,4 @@
-import { Module } from "discord-dbm";
+import { CommandModule, ModuleType } from "discord-dbm";
 import Discord, { Message } from "discord.js";
 import Fuse, { FuseOptions } from "fuse.js";
 import fetch from "node-fetch";
@@ -39,10 +39,11 @@ interface ErrorResponseObject {
     type: string;
 }
 
-class MTG implements Module {
+class MTG implements CommandModule {
     configuration = {
         name: "Magic: The Gathering",
         description: "",
+        type: [ModuleType.command],
         commands: ["mtg"]
     }
     sets!: Fuse<unknown, FuseOptions<unknown>>

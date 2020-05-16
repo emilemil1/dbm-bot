@@ -1,3 +1,4 @@
+import { ModuleType } from "discord-dbm";
 import Discord from "discord.js";
 import Fuse from "fuse.js";
 import fetch from "node-fetch";
@@ -6,6 +7,7 @@ class MTG {
         this.configuration = {
             name: "Magic: The Gathering",
             description: "",
+            type: [ModuleType.command],
             commands: ["mtg"]
         };
         this.init();

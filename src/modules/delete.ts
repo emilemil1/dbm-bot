@@ -1,14 +1,15 @@
-import { Module } from "discord-dbm";
+import { CommandModule, ModuleType } from "discord-dbm";
 import { Message, TextChannel, DMChannel, GroupDMChannel } from "discord.js";
 
-class Delete implements Module {
+class Delete implements CommandModule {
     configuration = {
         name: "Delete",
         description: "",
+        type: [ModuleType.command],
         commands: ["delete"]
     }
     
-    onCommand(command: string[], message: Message): void {
+    async onCommand(command: string[], message: Message): Promise<void> {
         this.searchForMessage(message.channel, message.client.user.id).then(id => {
             if (id !== undefined) {
                 message.channel.bulkDelete([id]);

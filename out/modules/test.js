@@ -1,12 +1,14 @@
+import { ModuleType } from "discord-dbm";
 class Test {
     constructor() {
         this.configuration = {
             name: "Test Module",
             description: "",
+            type: [ModuleType.command],
             commands: ["test"]
         };
     }
-    onCommand(command, message) {
+    async onCommand(command, message) {
         message.reply("Test!");
     }
 }

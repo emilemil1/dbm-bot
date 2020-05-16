@@ -1,14 +1,15 @@
-import { Module } from "discord-dbm";
+import { CommandModule, ModuleType } from "discord-dbm";
 import { Message } from "discord.js";
 
-class Test implements Module {
+class Test implements CommandModule {
     configuration = {
         name: "Test Module",
         description: "",
+        type: [ModuleType.command],
         commands: ["test"]
     }
     
-    onCommand(command: string[], message: Message): void {
+    async onCommand(command: string[], message: Message): Promise<void> {
         message.reply("Test!");
     }
 }

@@ -1,12 +1,14 @@
+import { ModuleType } from "discord-dbm";
 class Delete {
     constructor() {
         this.configuration = {
             name: "Delete",
             description: "",
+            type: [ModuleType.command],
             commands: ["delete"]
         };
     }
-    onCommand(command, message) {
+    async onCommand(command, message) {
         this.searchForMessage(message.channel, message.client.user.id).then(id => {
             if (id !== undefined) {
                 message.channel.bulkDelete([id]);

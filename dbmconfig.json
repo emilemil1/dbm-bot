@@ -1,8 +1,10 @@
 {
     "secrets": {
-        "loginToken": "ChewLoginToken"
+        "loginToken": "ChewLoginToken",
+        "twitchSecret": "ChewTwitchSecret"
     },
     "values": {
+        "twitchId": "hympc47j5z5xcffpv4u3212k2wjs4u"
     },
     "modules": [
         "./out/modules"
