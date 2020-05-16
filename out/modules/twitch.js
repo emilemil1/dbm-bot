@@ -8,7 +8,7 @@ class Twitch {
             description: "",
             type: [ModuleType.command, ModuleType.webhook],
             commands: ["twitch"],
-            webhook: [/https:\/\/api\.twitch\.tv/]
+            webhook: ["/twitch"]
         };
         this.data = {
             guilds: {},
@@ -42,20 +42,35 @@ class Twitch {
             this.info(command[1], message);
             return;
         }
-        if (command.length === 3 && command[1] === "notify") {
-            this.toggleNotify(command[2], message);
+        if (command.length === 3 && command[1] === "follow") {
+            this.follow(command[2], message);
+            return;
+        }
+        if (command.length === 3 && command[1] === "unfollow") {
+            this.unfollow(command[2], message);
             return;
         }
     }
     async hook(message) {
-        return 200;
+        if (message.body === "") {
+            const index = message.webhook.indexOf("hub.challenge=");
+            console.log(message.webhook.substring(index + 14, message.webhook.indexOf("&", index)));
+            return {
+                code: 200,
+                body: message.webhook.substring(index + 14, message.webhook.indexOf("&", index))
+            };
+        }
+        return {
+            code: 200,
+            body: message.webhook.substring(message.webhook.indexOf("?") + 1, message.webhook.indexOf("&"))
+        };
     }
     help(message) {
         message.channel.send(dedent `
             \`\`\`Commands:
                 ${BotUtils.getPrefix()}twitch [channel]
                     - display channel info
-                ${BotUtils.getPrefix()}twitch notify [channel]
+                ${BotUtils.getPrefix()}twitch follow/unfollow [channel]
                     - toggle channel notifications
                 ${BotUtils.getPrefix()}twitch here
                     - toggle notification chatroom\`\`\`
@@ -74,29 +89,41 @@ class Twitch {
         const notificationsEnabled = ((_a = this.data.guilds[message.guild.id]) === null || _a === void 0 ? void 0 : _a.channels[channel]) !== undefined;
         message.channel.send(`https://twitch.tv/${channelInfo.name}${notificationsEnabled ? " (notifications enabled)" : ""}`);
     }
-    async toggleNotify(channel, message) {
+    async follow(channel, message) {
         const guild = this.data.guilds[message.guild.id];
         if (guild === undefined || guild.chat === undefined) {
             message.channel.send(`Please first assign a chat to notify in. The command is '${BotUtils.getPrefix()}twitch here'.`);
             return;
+        }
+        if (guild.channels[channel] !== undefined) {
+            message.channel.send("Notifications are already active for this channel.");
         }
         const channelInfo = await this.getChannelInfo(channel);
         if ((channelInfo === null || channelInfo === void 0 ? void 0 : channelInfo.error) !== undefined) {
             message.channel.send(channelInfo.error);
             return;
         }
+        guild.channels[channel] = null;
+        if (this.data.channels[channel] === undefined) {
+            this.data.channels[channel] = {
+                guildIds: {},
+                count: 0
+            };
+            this.subscribe(channelInfo.id, true);
+        }
+        this.data.channels[channel].guildIds[message.guild.id] = null;
+        this.data.channels[channel].count++;
+        message.channel.send("Notifications enabled for Twitch channel: " + channelInfo.displayName);
+        return;
+    }
+    async unfollow(channel, message) {
+        const guild = this.data.guilds[message.guild.id];
         if (guild.channels[channel] === undefined) {
-            guild.channels[channel] = null;
-            if (this.data.channels[channel] === undefined) {
-                this.data.channels[channel] = {
-                    guildIds: {},
-                    count: 0
-                };
-                this.subscribe(channelInfo.id, true);
-            }
-            this.data.channels[channel].guildIds[message.guild.id] = null;
-            this.data.channels[channel].count++;
-            message.channel.send("Notifications enabled for Twitch channel: " + channelInfo.displayName);
+            message.channel.send("Notifications are not active for this channel.");
+        }
+        const channelInfo = await this.getChannelInfo(channel);
+        if ((channelInfo === null || channelInfo === void 0 ? void 0 : channelInfo.error) !== undefined) {
+            message.channel.send(channelInfo.error);
             return;
         }
         delete guild.channels[channel];
@@ -107,9 +134,8 @@ class Twitch {
             this.subscribe(channelInfo.id, false);
         }
         message.channel.send("Notifications disabled for Twitch channel: " + channelInfo.displayName);
-        return;
     }
-    async searchChannel(channel, retry = false) {
+    async searchChannel(channel) {
         const options = {
             headers: {
                 "Accept": "application/vnd.twitchtv.v5+json",
@@ -117,22 +143,14 @@ class Twitch {
                 "Authorization": "Bearer " + this.token
             }
         };
-        const result = await (await fetch(`https://api.twitch.tv/kraken/search/channels?query=${channel}&limit=1`, options)).json();
+        const result = await (await this.call(`https://api.twitch.tv/kraken/search/channels?query=${channel}&limit=1`, options)).json();
         if (result.error !== undefined) {
-            if (result.status === 401 || result.status === 402 || result.status === 403) {
-                return this.authorize().then(() => this.searchChannel(channel));
-            }
-            if (retry === false) {
-                this.searchChannel(channel, true);
-            }
-            else {
-                return {
-                    id: "",
-                    name: channel,
-                    displayName: "",
-                    error: "Could not retrieve data from Twitch, try again later."
-                };
-            }
+            return {
+                id: "",
+                name: channel,
+                displayName: "",
+                error: "Could not retrieve data from Twitch, try again later."
+            };
         }
         if (result.channels.length === 0) {
             return {
@@ -148,29 +166,21 @@ class Twitch {
             displayName: result.channels[0].display_name,
         };
     }
-    async getChannelInfo(channel, retry = false) {
+    async getChannelInfo(channel) {
         const options = {
             headers: {
                 "Client-ID": this.clientId,
                 "Authorization": "Bearer " + this.token
             }
         };
-        const result = await (await fetch(`https://api.twitch.tv/helix/users?login=${channel.toLowerCase()}`, options)).json();
+        const result = await (await this.call(`https://api.twitch.tv/helix/users?login=${channel.toLowerCase()}`, options)).json();
         if (result.error !== undefined) {
-            if (result.status === 401 || result.status === 402 || result.status === 403) {
-                return this.authorize().then(() => this.getChannelInfo(channel));
-            }
-            if (retry === false) {
-                this.getChannelInfo(channel, true);
-            }
-            else {
-                return {
-                    id: "",
-                    name: channel,
-                    displayName: "",
-                    error: "Could not retrieve data from Twitch, try again later."
-                };
-            }
+            return {
+                id: "",
+                name: channel,
+                displayName: "",
+                error: "Could not retrieve data from Twitch, try again later."
+            };
         }
         if (result.data.length === 0) {
             return {
@@ -185,23 +195,6 @@ class Twitch {
             name: channel,
             displayName: result.data[0].display_name
         };
-    }
-    async authorize(scopes = []) {
-        const options = {
-            method: "POST"
-        };
-        const url = new URL("https://id.twitch.tv/oauth2/token");
-        const params = {
-            "client_id": BotUtils.getValue("twitchId"),
-            "client_secret": BotUtils.getSecret("twitchSecret"),
-            "grant_type": "client_credentials",
-        };
-        if (scopes.length !== 0)
-            params["scope"] = scopes.join(" ");
-        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
-        const result = await (await fetch(url, options)).json();
-        this.token = result.access_token;
-        return result.access_token;
     }
     here(message) {
         let guild = this.data.guilds[message.guild.id];
@@ -221,7 +214,9 @@ class Twitch {
         }
         return;
     }
-    async subscribe(channelId, subscribe, retry = false) {
+    async subscribe(channelId, subscribe) {
+        const url = BotUtils.getValue("url") || "http://localhost";
+        const port = process.env.PORT || 3030;
         const options = {
             method: "POST",
             headers: {
@@ -230,22 +225,43 @@ class Twitch {
                 "Authorization": "Bearer " + this.token
             },
             body: JSON.stringify({
-                "hub.callback": "http://localhost",
+                "hub.callback": url + ":" + port + "/webhook/twitch",
                 "hub.mode": subscribe ? "subscribe" : "unsubscribe",
                 "hub.topic": "https://api.twitch.tv/helix/streams?user_id=" + channelId,
                 "hub.lease_seconds": "864000"
             })
         };
-        const result = await fetch("https://api.twitch.tv/helix/webhooks/hub", options);
-        if (result.status === 401 || result.status === 402 || result.status === 403) {
-            return this.authorize().then(() => this.subscribe(channelId, subscribe));
-        }
-        if (retry === false) {
-            this.subscribe(channelId, true);
-        }
-        else {
+        const result = await this.call("https://api.twitch.tv/helix/webhooks/hub", options);
+        if (!result.ok) {
             return "Could not send data to Twitch, try again later.";
         }
+    }
+    async call(url, options, scopes, retry = true) {
+        const result = await fetch(url, options);
+        if (result.ok || retry === false) {
+            return result;
+        }
+        if (result.status === 401 || result.status === 402 || result.status === 403) {
+            return this.authorize().then(() => this.call(url, options, scopes, retry = false));
+        }
+        return result;
+    }
+    async authorize(scopes = []) {
+        const options = {
+            method: "POST"
+        };
+        const url = new URL("https://id.twitch.tv/oauth2/token");
+        const params = {
+            "client_id": BotUtils.getValue("twitchId"),
+            "client_secret": BotUtils.getValue("twitchSecret"),
+            "grant_type": "client_credentials",
+        };
+        if (scopes.length !== 0)
+            params["scope"] = scopes.join(" ");
+        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+        const result = await (await fetch(url, options)).json();
+        this.token = result.access_token;
+        return result.access_token;
     }
 }
 export default new Twitch();
