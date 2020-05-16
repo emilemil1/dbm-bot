@@ -314,7 +314,7 @@ class Twitch implements CommandModule, WebhookModule {
             },
             body: JSON.stringify(
                 {
-                    "hub.callback": `${url}${port || ""}"/webhook/twitch`,
+                    "hub.callback": `${url}":"${port}"/webhook/twitch`,
                     "hub.mode": subscribe ? "subscribe" : "unsubscribe",
                     "hub.topic": "https://api.twitch.tv/helix/streams?user_id=" + channelInfo.id,
                     "hub.lease_seconds": "864000"
