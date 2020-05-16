@@ -121,18 +121,14 @@ class Twitch {
             message.channel.send(channelInfo.error);
             return;
         }
-        console.log("1");
         guild.channels[channel] = null;
         if (this.data.channels[channel] === undefined) {
-            console.log("2");
             this.data.channels[channel] = {
                 guildIds: {},
                 count: 0
             };
-            console.log("3");
             await this.subscribe(channelInfo, true);
         }
-        console.log("4");
         this.data.channels[channel].guildIds[message.guild.id] = null;
         this.data.channels[channel].count++;
         message.channel.send("Notifications enabled for Twitch channel: " + channelInfo.displayName);
@@ -238,11 +234,9 @@ class Twitch {
         return;
     }
     async subscribe(channelInfo, subscribe) {
-        console.log("here");
-        console.error("here");
         const url = BotUtils.getValue("url");
         const port = BotUtils.getValue("webhookPort");
-        console.log(`https://${url}":"${port}"/webhook/twitch`);
+        console.log(`https://${url}:${port}/webhook/twitch`);
         const options = {
             method: "POST",
             headers: {
@@ -251,7 +245,7 @@ class Twitch {
                 "Authorization": "Bearer " + this.token
             },
             body: JSON.stringify({
-                "hub.callback": `https://${url}":"${port}"/webhook/twitch`,
+                "hub.callback": `https://${url}:${port}/webhook/twitch`,
                 "hub.mode": subscribe ? "subscribe" : "unsubscribe",
                 "hub.topic": "https://api.twitch.tv/helix/streams?user_id=" + channelInfo.id,
                 "hub.lease_seconds": "864000"
