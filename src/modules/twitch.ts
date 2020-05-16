@@ -185,7 +185,7 @@ class Twitch implements CommandModule, WebhookModule {
                 guildIds: {},
                 count: 0
             };
-            this.subscribe(channelInfo, true);
+            await this.subscribe(channelInfo, true);
         }
         this.data.channels[channel].guildIds[message.guild.id] = null;
         this.data.channels[channel].count++;
@@ -211,7 +211,7 @@ class Twitch implements CommandModule, WebhookModule {
         this.data.channels[channel].count--;
         if (this.data.channels[channel].count === 0) {
             delete this.data.channels[channel];
-            this.subscribe(channelInfo, false);
+            await this.subscribe(channelInfo, false);
         }
         message.channel.send("Notifications disabled for Twitch channel: " + channelInfo.displayName);
     }
