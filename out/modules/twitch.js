@@ -63,7 +63,7 @@ class Twitch {
             };
         }
         const json = JSON.parse(message.body);
-        if (json.data.length === 0) {
+        if (json.data.length === 0 || this.data.channels[json.data[0].user_name] === undefined) {
             return {
                 code: 200
             };
@@ -73,7 +73,10 @@ class Twitch {
             if (guild.chat === undefined)
                 continue;
             const chat = (_a = BotUtils.getDiscordClient().guilds.get(guildId)) === null || _a === void 0 ? void 0 : _a.channels.get(guild.chat);
-            chat.send(`https://twitch.tv/${json.data[0].user_name} is now live!`);
+            chat.send(dedent `
+                https://twitch.tv/${json.data[0].user_name} is now live!
+                Streaming: ${json.data[0].title}
+                `);
         }
         return {
             code: 200
@@ -118,14 +121,18 @@ class Twitch {
             message.channel.send(channelInfo.error);
             return;
         }
+        console.log("1");
         guild.channels[channel] = null;
         if (this.data.channels[channel] === undefined) {
+            console.log("2");
             this.data.channels[channel] = {
                 guildIds: {},
                 count: 0
             };
-            this.subscribe(channelInfo, true);
+            console.log("3");
+            await this.subscribe(channelInfo, true);
         }
+        console.log("4");
         this.data.channels[channel].guildIds[message.guild.id] = null;
         this.data.channels[channel].count++;
         message.channel.send("Notifications enabled for Twitch channel: " + channelInfo.displayName);
@@ -147,7 +154,7 @@ class Twitch {
         this.data.channels[channel].count--;
         if (this.data.channels[channel].count === 0) {
             delete this.data.channels[channel];
-            this.subscribe(channelInfo, false);
+            await this.subscribe(channelInfo, false);
         }
         message.channel.send("Notifications disabled for Twitch channel: " + channelInfo.displayName);
     }
@@ -231,8 +238,11 @@ class Twitch {
         return;
     }
     async subscribe(channelInfo, subscribe) {
-        const url = BotUtils.getValue("url") || "http://localhost";
+        console.log("here");
+        console.error("here");
+        const url = BotUtils.getValue("url");
         const port = BotUtils.getValue("webhookPort");
+        console.log(`https://${url}":"${port}"/webhook/twitch`);
         const options = {
             method: "POST",
             headers: {
@@ -241,7 +251,7 @@ class Twitch {
                 "Authorization": "Bearer " + this.token
             },
             body: JSON.stringify({
-                "hub.callback": url + ":" + port + "/webhook/twitch",
+                "hub.callback": `https://${url}":"${port}"/webhook/twitch`,
                 "hub.mode": subscribe ? "subscribe" : "unsubscribe",
                 "hub.topic": "https://api.twitch.tv/helix/streams?user_id=" + channelInfo.id,
                 "hub.lease_seconds": "864000"
