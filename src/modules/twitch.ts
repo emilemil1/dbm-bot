@@ -23,6 +23,7 @@ interface GuildIds {
 interface TwitchChannel {
     guildIds: GuildIds;
     count: number;
+    id: string;
 }
 
 interface TwitchChannels {
@@ -65,6 +66,7 @@ class Twitch implements CommandModule, WebhookModule {
         this.clientId = BotUtils.getValue("twitchId");
         this.clientSecret = BotUtils.getValue("twitchSecret");
         this.authorize();
+        setInterval(() => this.renewFollows(), 3600000);
     }
 
     async onLoad(): Promise<void> {
@@ -100,8 +102,6 @@ class Twitch implements CommandModule, WebhookModule {
     }
 
     async hook(message: WebhookMessage): Promise<WebhookResponse> {
-        console.log("hook");
-        console.log(message);
         if (message.body === "") {
             const index = message.webhook.indexOf("hub.challenge=");
             return {
@@ -183,9 +183,10 @@ class Twitch implements CommandModule, WebhookModule {
         if (this.data.channels[channel] === undefined) {
             this.data.channels[channel] = {
                 guildIds: {},
-                count: 0
+                count: 0,
+                id: channelInfo.id
             };
-            await this.subscribe(channelInfo, true);
+            await this.subscribe(channelInfo.id, true);
         }
         this.data.channels[channel].guildIds[message.guild.id] = null;
         this.data.channels[channel].count++;
@@ -211,7 +212,7 @@ class Twitch implements CommandModule, WebhookModule {
         this.data.channels[channel].count--;
         if (this.data.channels[channel].count === 0) {
             delete this.data.channels[channel];
-            await this.subscribe(channelInfo, false);
+            await this.subscribe(channelInfo.id, false);
         }
         message.channel.send("Notifications disabled for Twitch channel: " + channelInfo.displayName);
     }
@@ -302,10 +303,9 @@ class Twitch implements CommandModule, WebhookModule {
         return;
     }
 
-    async subscribe(channelInfo: TwitchChannelInfo, subscribe: boolean): Promise<string|undefined> {
+    async subscribe(id: string, subscribe: boolean): Promise<string|undefined> {
         const url = BotUtils.getValue("url");
         const port = BotUtils.getValue("webhookPort");
-        console.log(`https://${url}:${port}/webhook/twitch`);
         const options: RequestInit = {
             method: "POST",
             headers: {
@@ -317,7 +317,7 @@ class Twitch implements CommandModule, WebhookModule {
                 {
                     "hub.callback": `https://${url}:${port}/webhook/twitch`,
                     "hub.mode": subscribe ? "subscribe" : "unsubscribe",
-                    "hub.topic": "https://api.twitch.tv/helix/streams?user_id=" + channelInfo.id,
+                    "hub.topic": "https://api.twitch.tv/helix/streams?user_id=" + id,
                     "hub.lease_seconds": "864000"
                 }
             ) 
@@ -326,6 +326,63 @@ class Twitch implements CommandModule, WebhookModule {
         if (!result.ok) {
             return "Could not send data to Twitch, try again later.";
         }
+    }
+
+    async renewFollows(): Promise<void> {
+        const follows = await this.getFollows();
+        this.cleanFollows(follows);
+        for (const follow of follows) {
+            console.log("renewing");
+            console.log(follow);
+            this.subscribe(follow, true);
+        }
+    }
+
+    async cleanFollows(keepFollows: string[]): Promise<void> {
+        const keepFollowsSet = new Set(keepFollows);
+        const removeCandidates: string[] = [];
+        for (const channel in this.data.channels) {
+            if (!keepFollowsSet.has(this.data.channels[channel].id)) {
+                removeCandidates.push(channel);
+            }
+        }
+
+        for (const channel in removeCandidates) {
+            delete this.data.channels[channel];
+            for (const guild in this.data.guilds) {
+                delete this.data.guilds[guild].channels[channel];
+            }
+        }
+    }
+
+    async getFollows(): Promise<string[]> {
+        const options: RequestInit = {
+            method: "GET",
+            headers: {
+                "Client-ID": this.clientId,
+                "Authorization": "Bearer " + this.token
+            }
+        };
+        const renewCandidates = [];
+        let page;
+        let result;
+        const data = [];
+        const date = new Date();
+        date.setDate(date.getDate()+1);
+        do {
+            result = await (await this.call(`https://api.twitch.tv/helix/webhooks/subscriptions?first=100${page !== undefined ? "&after="+page : ""}`, options)).json();
+            page = result.pagination.cursor;
+            data.push(...result.data);
+        } while (page !== undefined);
+
+        for (const entry of data) {
+            if (date > new Date(entry.expires_at)) {
+                const id = entry.topic.substring(entry.topic.lastIndexOf("=")+1);
+                renewCandidates.push(id);
+            }
+        }
+
+        return renewCandidates;
     }
 
     async call(url: string, options: RequestInit, scopes?: string[], retry = true): Promise<Response> {
