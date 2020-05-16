@@ -52,17 +52,31 @@ class Twitch {
         }
     }
     async hook(message) {
+        var _a;
+        console.log("hook");
+        console.log(message);
         if (message.body === "") {
             const index = message.webhook.indexOf("hub.challenge=");
-            console.log(message.webhook.substring(index + 14, message.webhook.indexOf("&", index)));
             return {
                 code: 200,
                 body: message.webhook.substring(index + 14, message.webhook.indexOf("&", index))
             };
         }
+        const json = JSON.parse(message.body);
+        if (json.data.length === 0) {
+            return {
+                code: 200
+            };
+        }
+        for (const guildId in this.data.channels[json.data[0].user_name].guildIds) {
+            const guild = this.data.guilds[guildId];
+            if (guild.chat === undefined)
+                continue;
+            const chat = (_a = BotUtils.getDiscordClient().guilds.get(guildId)) === null || _a === void 0 ? void 0 : _a.channels.get(guild.chat);
+            chat.send(`https://twitch.tv/${json.data[0].user_name} is now live!`);
+        }
         return {
-            code: 200,
-            body: message.webhook.substring(message.webhook.indexOf("?") + 1, message.webhook.indexOf("&"))
+            code: 200
         };
     }
     help(message) {
@@ -97,6 +111,7 @@ class Twitch {
         }
         if (guild.channels[channel] !== undefined) {
             message.channel.send("Notifications are already active for this channel.");
+            return;
         }
         const channelInfo = await this.getChannelInfo(channel);
         if ((channelInfo === null || channelInfo === void 0 ? void 0 : channelInfo.error) !== undefined) {
@@ -109,7 +124,7 @@ class Twitch {
                 guildIds: {},
                 count: 0
             };
-            this.subscribe(channelInfo.id, true);
+            this.subscribe(channelInfo, true);
         }
         this.data.channels[channel].guildIds[message.guild.id] = null;
         this.data.channels[channel].count++;
@@ -120,6 +135,7 @@ class Twitch {
         const guild = this.data.guilds[message.guild.id];
         if (guild.channels[channel] === undefined) {
             message.channel.send("Notifications are not active for this channel.");
+            return;
         }
         const channelInfo = await this.getChannelInfo(channel);
         if ((channelInfo === null || channelInfo === void 0 ? void 0 : channelInfo.error) !== undefined) {
@@ -131,7 +147,7 @@ class Twitch {
         this.data.channels[channel].count--;
         if (this.data.channels[channel].count === 0) {
             delete this.data.channels[channel];
-            this.subscribe(channelInfo.id, false);
+            this.subscribe(channelInfo, false);
         }
         message.channel.send("Notifications disabled for Twitch channel: " + channelInfo.displayName);
     }
@@ -214,9 +230,9 @@ class Twitch {
         }
         return;
     }
-    async subscribe(channelId, subscribe) {
+    async subscribe(channelInfo, subscribe) {
         const url = BotUtils.getValue("url") || "http://localhost";
-        const port = process.env.PORT || 3030;
+        const port = BotUtils.getValue("webhookPort");
         const options = {
             method: "POST",
             headers: {
@@ -227,7 +243,7 @@ class Twitch {
             body: JSON.stringify({
                 "hub.callback": url + ":" + port + "/webhook/twitch",
                 "hub.mode": subscribe ? "subscribe" : "unsubscribe",
-                "hub.topic": "https://api.twitch.tv/helix/streams?user_id=" + channelId,
+                "hub.topic": "https://api.twitch.tv/helix/streams?user_id=" + channelInfo.id,
                 "hub.lease_seconds": "864000"
             })
         };
