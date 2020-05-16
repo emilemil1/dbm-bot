@@ -111,7 +111,7 @@ class Twitch implements CommandModule, WebhookModule {
         }
 
         const json = JSON.parse(message.body);
-        if (json.data.length === 0) {
+        if (json.data.length === 0 || this.data.channels[json.data[0].user_name] === undefined) {
             return {
                 code: 200
             };
@@ -121,7 +121,12 @@ class Twitch implements CommandModule, WebhookModule {
             const guild = this.data.guilds[guildId];
             if (guild.chat === undefined) continue;
             const chat = BotUtils.getDiscordClient().guilds.get(guildId)?.channels.get(guild.chat) as TextChannel;
-            chat.send(`https://twitch.tv/${json.data[0].user_name} is now live!`);
+            chat.send(
+                dedent`
+                https://twitch.tv/${json.data[0].user_name} is now live!
+                Streaming: ${json.data[0].title}
+                `
+            );
         }
 
         return {
@@ -299,7 +304,7 @@ class Twitch implements CommandModule, WebhookModule {
 
     async subscribe(channelInfo: TwitchChannelInfo, subscribe: boolean): Promise<string|undefined> {
         const url = BotUtils.getValue("url") || "http://localhost";
-        const port = BotUtils.getValue("port");
+        const port = BotUtils.getValue("webhookPort");
         const options: RequestInit = {
             method: "POST",
             headers: {
@@ -309,7 +314,7 @@ class Twitch implements CommandModule, WebhookModule {
             },
             body: JSON.stringify(
                 {
-                    "hub.callback": url + ":" + port + "/webhook/twitch",
+                    "hub.callback": `${url}${port || ""}"/webhook/twitch`,
                     "hub.mode": subscribe ? "subscribe" : "unsubscribe",
                     "hub.topic": "https://api.twitch.tv/helix/streams?user_id=" + channelInfo.id,
                     "hub.lease_seconds": "864000"

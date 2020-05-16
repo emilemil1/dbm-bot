@@ -1,8 +1,8 @@
 {
     "values": {
         "loginToken": "${ChewLoginToken}",
-        "port": "${ChewPort}",
         "url": "${ChewUrl}",
+        "webhookPort": "${ChewWebhookPort}",
         "twitchId": "hympc47j5z5xcffpv4u3212k2wjs4u",
         "twitchSecret": "${ChewTwitchSecret}"
     },
