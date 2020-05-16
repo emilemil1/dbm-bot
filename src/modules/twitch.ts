@@ -305,6 +305,7 @@ class Twitch implements CommandModule, WebhookModule {
     async subscribe(channelInfo: TwitchChannelInfo, subscribe: boolean): Promise<string|undefined> {
         const url = BotUtils.getValue("url") || "http://localhost";
         const port = BotUtils.getValue("webhookPort");
+        console.log(`${url}":"${port}"/webhook/twitch`);
         const options: RequestInit = {
             method: "POST",
             headers: {
