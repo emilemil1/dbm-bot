@@ -230,7 +230,7 @@ class Twitch {
             message.channel.send("Twitch notifications will now appear in this chat!");
         }
         else {
-            guild.chat = undefined;
+            delete guild.chat;
             message.channel.send("Twitch notifications will no longer appear.");
         }
         return;
