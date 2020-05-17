@@ -1,4 +1,4 @@
-import { PersistenceModule, ModuleType, PersistenceData, PersistenceResult, BotUtils } from "discord-dbm";
+import { PersistenceModule, ModuleType, PersistenceData, PersistenceResult } from "discord-dbm";
 import admin from "firebase-admin";
 import fs from "fs";
 
@@ -48,8 +48,9 @@ class Firebase implements PersistenceModule {
     }
 
     async onShutdown(): Promise<void> {
-        await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence);
         console.log(this.persistence);
+        await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence);
+        console.log("persisted");
     }
 }
 
