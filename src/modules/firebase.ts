@@ -31,6 +31,7 @@ class Firebase implements PersistenceModule {
     }
 
     get(id: string): Promise<PersistenceData> {
+        console.log(this.persistence);
         return Promise.resolve(this.persistence[id]);
     }
 

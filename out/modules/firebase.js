@@ -23,6 +23,7 @@ class Firebase {
         });
     }
     get(id) {
+        console.log(this.persistence);
         return Promise.resolve(this.persistence[id]);
     }
     set(id, data) {
