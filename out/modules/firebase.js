@@ -9,7 +9,6 @@ class Firebase {
             type: [ModuleType.persistence]
         };
         this.persistence = {};
-        console.log("here");
         if (fs.existsSync("GOOGLE_APPLICATION_CREDENTIALS.json")) {
             process.env["GOOGLE_APPLICATION_CREDENTIALS"] = "GOOGLE_APPLICATION_CREDENTIALS.json";
         }

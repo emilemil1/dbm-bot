@@ -16,7 +16,6 @@ class Firebase implements PersistenceModule {
     firebase: admin.app.App;
 
     constructor() {
-        console.log("here")
         if (fs.existsSync("GOOGLE_APPLICATION_CREDENTIALS.json")) {
             process.env["GOOGLE_APPLICATION_CREDENTIALS"] = "GOOGLE_APPLICATION_CREDENTIALS.json";
         } else if (process.env["GOOGLE_APPLICATION_CREDENTIALS"] !== undefined) {
