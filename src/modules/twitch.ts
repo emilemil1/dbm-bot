@@ -84,6 +84,10 @@ class Twitch implements CommandModule, WebhookModule {
             this.here(message);
             return;
         }
+        if (command.length === 2 && command[1] === "list") {
+            this.list(message);
+            return;
+        }
         if (command.length === 2) {
             this.info(command[1], message);
             return;
@@ -139,8 +143,27 @@ class Twitch implements CommandModule, WebhookModule {
                     - display channel info
                 ${BotUtils.getPrefix()}twitch follow/unfollow [channel]
                     - toggle channel notifications
+                ${BotUtils.getPrefix()}twitch list
+                    - show all active notifications
                 ${BotUtils.getPrefix()}twitch here
                     - toggle notification chatroom\`\`\`
+            `.trim()
+        );
+    }
+
+    list(message: Message): void {
+        const channels = this.data.guilds[message.guild.id]?.channels;
+        if (channels === undefined) {
+            message.channel.send("You are not following any Twitch channels.");
+            return;
+        }
+
+        const channelNames = Object.getOwnPropertyNames(channels).join("\n");
+
+        message.channel.send(
+            dedent`
+            You are following these Twitch channels:
+            \`\`\`${channelNames}\`\`\`
             `.trim()
         );
     }
