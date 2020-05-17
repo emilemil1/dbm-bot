@@ -23,7 +23,6 @@ class Firebase {
         });
     }
     get(id) {
-        console.log(this.persistence);
         return Promise.resolve(this.persistence[id]);
     }
     set(id, data) {
@@ -35,13 +34,9 @@ class Firebase {
     }
     async onLoad() {
         this.persistence = (await this.firebase.firestore().collection("persist").doc("persist").get()).data();
-        console.log(this.persistence);
     }
     async onShutdown() {
-        console.log(this.persistence);
         const result = await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence);
-        console.log(result);
-        console.log("persisted");
     }
 }
 export default new Firebase();

@@ -31,7 +31,6 @@ class Firebase implements PersistenceModule {
     }
 
     get(id: string): Promise<PersistenceData> {
-        console.log(this.persistence);
         return Promise.resolve(this.persistence[id]);
     }
 
@@ -45,14 +44,10 @@ class Firebase implements PersistenceModule {
 
     async onLoad(): Promise<void> {
         this.persistence = (await this.firebase.firestore().collection("persist").doc("persist").get()).data() as unknown as Persistence;
-        console.log(this.persistence);
     }
 
     async onShutdown(): Promise<void> {
-        console.log(this.persistence);
         const result = await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence);
-        console.log(result);
-        console.log("persisted");
     }
 }
 

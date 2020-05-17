@@ -72,9 +72,7 @@ class Twitch implements CommandModule, WebhookModule {
     }
 
     async onShutdown(): Promise<void> {
-        console.log(BotUtils.storage);
         const result = await BotUtils.storage?.set("twitch", this.data as unknown as PersistenceData);
-        console.log(result);
     }
     
     async onCommand(command: string[], message: Message): Promise<void> {
@@ -331,8 +329,6 @@ class Twitch implements CommandModule, WebhookModule {
         const follows = await this.getFollows();
         this.cleanFollows(follows);
         for (const follow of follows) {
-            console.log("renewing");
-            console.log(follow);
             this.subscribe(follow, true);
         }
     }

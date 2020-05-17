@@ -30,9 +30,7 @@ class Twitch {
     }
     async onShutdown() {
         var _a;
-        console.log(BotUtils.storage);
         const result = await ((_a = BotUtils.storage) === null || _a === void 0 ? void 0 : _a.set("twitch", this.data));
-        console.log(result);
     }
     async onCommand(command, message) {
         if (command.length === 1) {
@@ -263,8 +261,6 @@ class Twitch {
         const follows = await this.getFollows();
         this.cleanFollows(follows);
         for (const follow of follows) {
-            console.log("renewing");
-            console.log(follow);
             this.subscribe(follow, true);
         }
     }
