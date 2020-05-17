@@ -13,17 +13,10 @@ class Firebase implements PersistenceModule {
         type: [ModuleType.persistence]
     }
     persistence: Persistence = {}
-    firebaseConfig = {
-        apiKey: "",
-        authDomain: "hug-bot.firebaseapp.com",
-        databaseURL: "https://hug-bot.firebaseio.com",
-        projectId: "hug-bot",
-        storageBucket: "hug-bot.appspot.com"
-    }
     firebase: admin.app.App;
 
     constructor() {
-        this.firebaseConfig.apiKey = BotUtils.getValue("firebaseKey");
+        console.log("here")
         if (fs.existsSync("GOOGLE_APPLICATION_CREDENTIALS.json")) {
             process.env["GOOGLE_APPLICATION_CREDENTIALS"] = "GOOGLE_APPLICATION_CREDENTIALS.json";
         } else if (process.env["GOOGLE_APPLICATION_CREDENTIALS"] !== undefined) {

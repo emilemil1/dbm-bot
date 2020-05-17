@@ -1,4 +1,4 @@
-import { ModuleType, BotUtils } from "discord-dbm";
+import { ModuleType } from "discord-dbm";
 import admin from "firebase-admin";
 import fs from "fs";
 class Firebase {
@@ -9,14 +9,7 @@ class Firebase {
             type: [ModuleType.persistence]
         };
         this.persistence = {};
-        this.firebaseConfig = {
-            apiKey: "",
-            authDomain: "hug-bot.firebaseapp.com",
-            databaseURL: "https://hug-bot.firebaseio.com",
-            projectId: "hug-bot",
-            storageBucket: "hug-bot.appspot.com"
-        };
-        this.firebaseConfig.apiKey = BotUtils.getValue("firebaseKey");
+        console.log("here");
         if (fs.existsSync("GOOGLE_APPLICATION_CREDENTIALS.json")) {
             process.env["GOOGLE_APPLICATION_CREDENTIALS"] = "GOOGLE_APPLICATION_CREDENTIALS.json";
         }
