@@ -33,7 +33,7 @@ class Firebase {
         });
     }
     async onLoad() {
-        this.persistence = await this.firebase.firestore().collection("persist").doc("persist").get();
+        this.persistence = (await this.firebase.firestore().collection("persist").doc("persist").get()).data();
         console.log(this.persistence);
     }
     async onShutdown() {
