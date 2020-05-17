@@ -33,11 +33,11 @@ class Firebase {
         });
     }
     async onLoad() {
-        this.persistence = this.firebase.firestore().collection("persist").doc("persist").get();
+        this.persistence = await this.firebase.firestore().collection("persist").doc("persist").get();
         console.log(this.persistence);
     }
     async onShutdown() {
-        this.firebase.firestore().collection("persist").doc("persist").set(this.persistence);
+        await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence);
         console.log(this.persistence);
     }
 }

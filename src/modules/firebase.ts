@@ -43,12 +43,12 @@ class Firebase implements PersistenceModule {
     }
 
     async onLoad(): Promise<void> {
-        this.persistence = this.firebase.firestore().collection("persist").doc("persist").get() as unknown as Persistence;
+        this.persistence = await this.firebase.firestore().collection("persist").doc("persist").get() as unknown as Persistence;
         console.log(this.persistence);
     }
 
     async onShutdown(): Promise<void> {
-        this.firebase.firestore().collection("persist").doc("persist").set(this.persistence);
+        await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence);
         console.log(this.persistence);
     }
 }
