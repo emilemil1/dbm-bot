@@ -75,7 +75,8 @@ class Twitch implements CommandModule, WebhookModule {
     }
 
     async onShutdown(): Promise<void> {
-        await BotUtils.storage?.set("twitch", this.data as unknown as PersistenceData);
+        const result = await BotUtils.storage?.set("twitch", this.data as unknown as PersistenceData);
+        console.log(result);
     }
     
     async onCommand(command: string[], message: Message): Promise<void> {

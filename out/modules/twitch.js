@@ -28,7 +28,8 @@ class Twitch {
     }
     async onShutdown() {
         var _a;
-        await ((_a = BotUtils.storage) === null || _a === void 0 ? void 0 : _a.set("twitch", this.data));
+        const result = await ((_a = BotUtils.storage) === null || _a === void 0 ? void 0 : _a.set("twitch", this.data));
+        console.log(result);
     }
     async onCommand(command, message) {
         if (command.length === 1) {
