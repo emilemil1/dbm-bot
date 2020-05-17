@@ -18,10 +18,12 @@ class Firebase {
         };
         this.firebaseConfig.apiKey = BotUtils.getValue("firebaseKey");
         if (fs.existsSync("GOOGLE_APPLICATION_CREDENTIALS.json")) {
-            const cred = fs.readFileSync("GOOGLE_APPLICATION_CREDENTIALS.json", {
-                encoding: "utf8"
-            });
-            process.env["GOOGLE_APPLICATION_CREDENTIALS.json"] = cred;
+            process.env["GOOGLE_APPLICATION_CREDENTIALS"] = "GOOGLE_APPLICATION_CREDENTIALS.json";
+        }
+        else if (process.env["GOOGLE_APPLICATION_CREDENTIALS"] !== undefined) {
+            const content = process.env["GOOGLE_APPLICATION_CREDENTIALS"];
+            process.env["GOOGLE_APPLICATION_CREDENTIALS"] = "GOOGLE_APPLICATION_CREDENTIALS.json";
+            fs.writeFileSync("GOOGLE_APPLICATION_CREDENTIALS.json", content);
         }
         this.firebase = admin.initializeApp({
             credential: admin.credential.applicationDefault(),
