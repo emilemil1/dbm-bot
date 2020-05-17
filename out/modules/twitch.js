@@ -28,6 +28,7 @@ class Twitch {
     }
     async onShutdown() {
         var _a;
+        console.log(BotUtils.storage);
         const result = await ((_a = BotUtils.storage) === null || _a === void 0 ? void 0 : _a.set("twitch", this.data));
         console.log(result);
     }
