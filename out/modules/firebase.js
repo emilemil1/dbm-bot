@@ -37,7 +37,7 @@ class Firebase {
     }
     async onShutdown() {
         const res = await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence);
-        return console.log(res);
+        console.log(res);
     }
 }
 export default new Firebase();
