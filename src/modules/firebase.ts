@@ -47,8 +47,8 @@ class Firebase implements PersistenceModule {
     }
 
     async onShutdown(): Promise<void> {
-        console.log(this.persistence["twitch"]);
-        await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence, {});
+        const result = await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence);
+        console.log(result);
     }
 }
 

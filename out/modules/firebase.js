@@ -36,8 +36,8 @@ class Firebase {
         this.persistence = (await this.firebase.firestore().collection("persist").doc("persist").get()).data();
     }
     async onShutdown() {
-        console.log(this.persistence["twitch"]);
-        await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence, {});
+        const result = await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence);
+        console.log(result);
     }
 }
 export default new Firebase();
