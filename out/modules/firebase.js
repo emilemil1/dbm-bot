@@ -36,7 +36,8 @@ class Firebase {
         this.persistence = (await this.firebase.firestore().collection("persist").doc("persist").get()).data();
     }
     async onShutdown() {
-        const result = await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence, {});
+        console.log(this.persistence);
+        await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence, {});
     }
 }
 export default new Firebase();
