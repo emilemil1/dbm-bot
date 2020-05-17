@@ -47,8 +47,11 @@ class Firebase implements PersistenceModule {
     }
 
     async onShutdown(): Promise<void> {
+        console.log("shutdown");
         const result = await this.firebase.firestore().collection("persist").doc("persist").set(this.persistence);
+        console.log("done");
         console.log(result);
+        return;
     }
 }
 
