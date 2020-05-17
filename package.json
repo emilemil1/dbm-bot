@@ -12,7 +12,7 @@
     "@types/node-fetch": "^2.5.7",
     "@types/request": "^2.48.5",
     "dedent": "^0.7.0",
-    "discord-dbm": "^1.3.32",
+    "discord-dbm": "^1.3.33",
     "firebase": "^7.14.4",
     "firebase-admin": "^8.12.1",
     "fuse.js": "^4.0.0-beta",
