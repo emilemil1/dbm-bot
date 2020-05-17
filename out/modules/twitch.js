@@ -14,14 +14,16 @@ class Twitch {
             guilds: {},
             channels: {}
         };
+        this.clientId = "";
+        this.clientSecret = "";
         this.token = "";
+    }
+    async onLoad() {
+        var _a;
         this.clientId = BotUtils.getValue("twitchId");
         this.clientSecret = BotUtils.getValue("twitchSecret");
         this.authorize();
         setInterval(() => this.renewFollows(), 3600000);
-    }
-    async onLoad() {
-        var _a;
         const data = await ((_a = BotUtils.storage) === null || _a === void 0 ? void 0 : _a.get("twitch"));
         if (data !== undefined)
             this.data = data;
