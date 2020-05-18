@@ -124,7 +124,7 @@ class Twitch implements CommandModule, WebhookModule {
             };
         }
 
-        for (const guildId in this.data.channels[json.data[0].user_name].guildIds) {
+        for (const guildId in this.data.channels[json.data[0].user_name.toLowerCase()].guildIds) {
             const guild = this.data.guilds[guildId];
             if (guild.chat === undefined) continue;
             const chat = BotUtils.getDiscordClient().guilds.get(guildId)?.channels.get(guild.chat) as TextChannel;
