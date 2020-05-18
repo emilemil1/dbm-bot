@@ -143,7 +143,8 @@ class Twitch implements CommandModule, WebhookModule {
     help(message: Message): void {
         message.channel.send(
             dedent`
-            \`\`\`Commands:
+            \`\`\`
+            Commands:
                 ${BotUtils.getPrefix()}twitch [channel]
                     - display channel info
                 ${BotUtils.getPrefix()}twitch follow/unfollow [channel]
@@ -151,7 +152,8 @@ class Twitch implements CommandModule, WebhookModule {
                 ${BotUtils.getPrefix()}twitch list
                     - show all active notifications
                 ${BotUtils.getPrefix()}twitch here
-                    - toggle notification chatroom\`\`\`
+                    - toggle notification chatroom
+            \`\`\`
             `.trim()
         );
     }
@@ -168,7 +170,9 @@ class Twitch implements CommandModule, WebhookModule {
         message.channel.send(
             dedent`
             You are following these Twitch channels:
-            \`\`\`${channelNames}\`\`\`
+            \`\`\`
+            ${channelNames}
+            \`\`\`
             `.trim()
         );
     }
