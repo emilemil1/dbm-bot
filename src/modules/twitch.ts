@@ -118,7 +118,7 @@ class Twitch implements CommandModule, WebhookModule {
         }
 
         const json = JSON.parse(message.body);
-        if (json.data.length === 0 || this.data.channels[json.data[0].user_name] === undefined) {
+        if (json.data.length === 0 || this.data.channels[json.data[0].user_name.toLowerCase()] === undefined) {
             return {
                 code: 200
             };
