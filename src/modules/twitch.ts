@@ -108,6 +108,7 @@ class Twitch implements CommandModule, WebhookModule {
     }
 
     async hook(message: WebhookMessage): Promise<WebhookResponse> {
+        console.log(message);
         if (message.body === "") {
             const index = message.webhook.indexOf("hub.challenge=");
             return {
