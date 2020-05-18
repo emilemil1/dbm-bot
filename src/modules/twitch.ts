@@ -46,6 +46,11 @@ interface Params {
     [key: string]: string;
 }
 
+interface RemoteFollows {
+    expiresAt: string;
+    id: string;
+}
+
 class Twitch implements CommandModule, WebhookModule {
     configuration = {
         name: "Twitch Notifier",
@@ -158,7 +163,7 @@ class Twitch implements CommandModule, WebhookModule {
             return;
         }
 
-        const channelNames = Object.getOwnPropertyNames(channels).join("\n");
+        const channelNames = Object.getOwnPropertyNames(channels).sort().join("\n");
 
         message.channel.send(
             dedent`
@@ -350,9 +355,15 @@ class Twitch implements CommandModule, WebhookModule {
 
     async renewFollows(): Promise<void> {
         const follows = await this.getFollows();
-        this.cleanFollows(follows);
-        for (const follow of follows) {
-            this.subscribe(follow, true);
+        this.cleanFollows(follows.map(fol => fol.id));
+        const date = new Date();
+        date.setDate(date.getDate()+1);
+        const ids = new Set(Object.getOwnPropertyNames(this.data.channels).map(name => this.data.channels[name].id));
+
+        for (const entry of follows) {
+            if (date > new Date(entry.expiresAt) && ids.has(entry.id)) {
+                this.subscribe(entry.id, true);
+            }
         }
     }
 
@@ -373,7 +384,7 @@ class Twitch implements CommandModule, WebhookModule {
         }
     }
 
-    async getFollows(): Promise<string[]> {
+    async getFollows(): Promise<RemoteFollows[]> {
         const options: RequestInit = {
             method: "GET",
             headers: {
@@ -381,26 +392,22 @@ class Twitch implements CommandModule, WebhookModule {
                 "Authorization": "Bearer " + this.token
             }
         };
-        const renewCandidates = [];
         let page;
         let result;
         const data = [];
-        const date = new Date();
-        date.setDate(date.getDate()+1);
         do {
             result = await (await this.call(`https://api.twitch.tv/helix/webhooks/subscriptions?first=100${page !== undefined ? "&after="+page : ""}`, options)).json();
             page = result.pagination.cursor;
             data.push(...result.data);
         } while (page !== undefined);
 
-        for (const entry of data) {
-            if (date > new Date(entry.expires_at)) {
-                const id = entry.topic.substring(entry.topic.lastIndexOf("=")+1);
-                renewCandidates.push(id);
-            }
-        }
-
-        return renewCandidates;
+        return data.map(entry => {
+            return {
+                id: entry.topic.substring(entry.topic.lastIndexOf("=")+1),
+                expiresAt: entry.expires_at
+            };
+        });
+             
     }
 
     async call(url: string, options: RequestInit, scopes?: string[], retry = true): Promise<Response> {
