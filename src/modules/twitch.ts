@@ -121,7 +121,8 @@ class Twitch implements CommandModule, WebhookModule {
         const json = JSON.parse(message.body);
         if (json.data.length === 0 || 
             this.data.channels[json.data[0].user_name?.toLowerCase()] === undefined ||
-            this.antiDupe.has(json.data[0].user_name)) {
+            this.antiDupe.has(json.data[0].user_name) ||
+            new Date(json.data["started_at"]).getTime() + 300000 < new Date().getTime()) {
             return {
                 code: 200,
                 body: "Ok"
@@ -132,7 +133,11 @@ class Twitch implements CommandModule, WebhookModule {
         for (const guildId in this.data.channels[json.data[0].user_name.toLowerCase()].guildIds) {
             const guild = this.data.guilds[guildId];
             if (guild.chat === undefined) continue;
-            sent = true;
+            if (sent === false) {
+                this.antiDupe.add(json.data[0].user_name);
+                setTimeout(() => this.antiDupe.delete(json.data[0].user_name), 300000);
+                sent = true;
+            }
             const chat = BotUtils.getDiscordClient().guilds.get(guildId)?.channels.get(guild.chat) as TextChannel;
             chat.send(
                 dedent`
@@ -140,10 +145,6 @@ class Twitch implements CommandModule, WebhookModule {
                 Streaming: ${json.data[0].title}
                 `
             );
-        }
-        if (sent) {
-            this.antiDupe.add(json.data[0].user_name);
-            setTimeout(() => this.antiDupe.delete(json.data[0].user_name), 60000);
         }
 
         return {
