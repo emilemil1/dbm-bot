@@ -118,28 +118,21 @@ class Twitch implements CommandModule, WebhookModule {
             };
         }
 
-        const id = message.headers["twitch-notification-id"];
-        if (this.antiDupe.has(id)) {
-            return {
-                code: 200,
-                body: "Ok"
-            };
-        }
-
         const json = JSON.parse(message.body);
-        if (json.data.length === 0 || this.data.channels[json.data[0].user_name.toLowerCase()] === undefined) {
+        if (json.data.length === 0 || 
+            this.data.channels[json.data[0].user_name?.toLowerCase()] === undefined ||
+            this.antiDupe.has(json.data[0].user_name)) {
             return {
                 code: 200,
                 body: "Ok"
             };
         }
 
+        let sent = false;
         for (const guildId in this.data.channels[json.data[0].user_name.toLowerCase()].guildIds) {
             const guild = this.data.guilds[guildId];
             if (guild.chat === undefined) continue;
-            const id = message.headers["twitch-notification-id"];
-            this.antiDupe.add(id);
-            setTimeout(() => this.antiDupe.delete(id), 60000);
+            sent = true;
             const chat = BotUtils.getDiscordClient().guilds.get(guildId)?.channels.get(guild.chat) as TextChannel;
             chat.send(
                 dedent`
@@ -147,6 +140,10 @@ class Twitch implements CommandModule, WebhookModule {
                 Streaming: ${json.data[0].title}
                 `
             );
+        }
+        if (sent) {
+            this.antiDupe.add(json.data[0].user_name);
+            setTimeout(() => this.antiDupe.delete(json.data[0].user_name), 60000);
         }
 
         return {
