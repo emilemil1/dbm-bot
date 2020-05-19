@@ -66,8 +66,7 @@ class Twitch implements CommandModule, WebhookModule {
     clientId = "";
     clientSecret = "";
     token = "";
-    notifications1 = new Set();
-    notifications2 = new Set();
+    antiDupe = new Set();
 
     async onLoad(): Promise<void> {
         this.clientId = BotUtils.getValue("twitchId");
@@ -120,24 +119,11 @@ class Twitch implements CommandModule, WebhookModule {
         }
 
         const id = message.headers["twitch-notification-id"];
-        if (id !== undefined) {
-            if (this.notifications1.has(id) || this.notifications2.has(id)) {
-                return {
-                    code: 200,
-                    body: "Ok"
-                };
-            }
-            if (this.notifications1.size > 100) {
-                this.notifications2.add(id);
-                if (this.notifications2.size > 100) {
-                    this.notifications1.clear();
-                }
-            } else {
-                this.notifications1.add(id);
-                if (this.notifications1.size > 100) {
-                    this.notifications2.clear();
-                }
-            }
+        if (this.antiDupe.has(id)) {
+            return {
+                code: 200,
+                body: "Ok"
+            };
         }
 
         const json = JSON.parse(message.body);
@@ -151,6 +137,9 @@ class Twitch implements CommandModule, WebhookModule {
         for (const guildId in this.data.channels[json.data[0].user_name.toLowerCase()].guildIds) {
             const guild = this.data.guilds[guildId];
             if (guild.chat === undefined) continue;
+            const id = message.headers["twitch-notification-id"];
+            this.antiDupe.add(id);
+            setTimeout(() => this.antiDupe.delete(id), 60000);
             const chat = BotUtils.getDiscordClient().guilds.get(guildId)?.channels.get(guild.chat) as TextChannel;
             chat.send(
                 dedent`
