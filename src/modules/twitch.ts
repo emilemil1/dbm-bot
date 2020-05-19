@@ -66,6 +66,8 @@ class Twitch implements CommandModule, WebhookModule {
     clientId = "";
     clientSecret = "";
     token = "";
+    notifications1 = new Set();
+    notifications2 = new Set();
 
     async onLoad(): Promise<void> {
         this.clientId = BotUtils.getValue("twitchId");
@@ -108,13 +110,32 @@ class Twitch implements CommandModule, WebhookModule {
     }
 
     async hook(message: WebhookMessage): Promise<WebhookResponse> {
-        console.log(message);
         if (message.body === "") {
             const index = message.webhook.indexOf("hub.challenge=");
             return {
                 code: 200,
                 body: message.webhook.substring(index+14, message.webhook.indexOf("&", index))
             };
+        }
+
+        const id = message.headers["twitch-notification-id"];
+        if (id !== undefined) {
+            if (this.notifications1.has(id) || this.notifications2.has(id)) {
+                return {
+                    code: 200
+                };
+            }
+            if (this.notifications1.size > 100) {
+                this.notifications2.add(id);
+                if (this.notifications2.size > 100) {
+                    this.notifications1.clear();
+                }
+            } else {
+                this.notifications1.add(id);
+                if (this.notifications1.size > 100) {
+                    this.notifications2.clear();
+                }
+            }
         }
 
         const json = JSON.parse(message.body);
