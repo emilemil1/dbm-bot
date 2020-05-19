@@ -110,6 +110,7 @@ class Twitch implements CommandModule, WebhookModule {
     }
 
     async hook(message: WebhookMessage): Promise<WebhookResponse> {
+        console.log(message);
         if (message.body === "") {
             const index = message.webhook.indexOf("hub.challenge=");
             return {
@@ -122,7 +123,8 @@ class Twitch implements CommandModule, WebhookModule {
         if (id !== undefined) {
             if (this.notifications1.has(id) || this.notifications2.has(id)) {
                 return {
-                    code: 200
+                    code: 200,
+                    body: "Ok"
                 };
             }
             if (this.notifications1.size > 100) {
@@ -141,7 +143,8 @@ class Twitch implements CommandModule, WebhookModule {
         const json = JSON.parse(message.body);
         if (json.data.length === 0 || this.data.channels[json.data[0].user_name.toLowerCase()] === undefined) {
             return {
-                code: 200
+                code: 200,
+                body: "Ok"
             };
         }
 
@@ -158,7 +161,8 @@ class Twitch implements CommandModule, WebhookModule {
         }
 
         return {
-            code: 200
+            code: 200,
+            body: "Ok"
         };
     }
 
