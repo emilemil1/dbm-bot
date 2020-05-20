@@ -164,7 +164,7 @@ class Twitch implements CommandModule, WebhookModule {
         }
 
         const activeChannel: LiveChannel = {
-            date: json.data[0].started_at,
+            date: new Date(json.data[0].started_at),
             title: json.data[0].title,
             name: json.data[0].user_name,
             guilds: []
