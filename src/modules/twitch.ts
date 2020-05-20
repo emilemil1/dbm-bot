@@ -291,8 +291,6 @@ class Twitch implements CommandModule, WebhookModule {
             chat: message.channel.id,
             message: response.id
         };
-
-        setTimeout(() => updateoldlivepost(message.guild, guild, guild.live?.message));
     }
 
     async setLiveChannelOffline (channelId: string): Promise<void> {
