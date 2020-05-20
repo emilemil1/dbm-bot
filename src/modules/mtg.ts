@@ -1,5 +1,5 @@
 import { CommandModule, ModuleType } from "discord-dbm";
-import Discord, { Message } from "discord.js";
+import { Message, MessageEmbed } from "discord.js";
 import Fuse, { FuseOptions } from "fuse.js";
 import fetch from "node-fetch";
 
@@ -131,7 +131,7 @@ class MTG implements CommandModule {
         }
         
 
-        const embed = new Discord.RichEmbed()
+        const embed = new MessageEmbed()
             .setImage(card.image_uris.border_crop)
             .setAuthor(`${card.name} (${card.set.toUpperCase()})`, undefined, card.scryfall_uri)
             .setFooter(`${footer.filter(s => s !== undefined && s !== "").join(" • ")}`);

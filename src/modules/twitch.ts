@@ -1,5 +1,5 @@
 import { CommandModule, ModuleType, BotUtils, PersistenceData, WebhookModule, WebhookMessage, WebhookResponse } from "discord-dbm";
-import { Message, TextChannel } from "discord.js";
+import { Message, TextChannel, MessageEmbed } from "discord.js";
 import dedent from "dedent";
 import fetch, { RequestInit, Response } from "node-fetch";
 
@@ -7,8 +7,20 @@ interface TwitchChannelNames {
     [key: string]: null;
 }
 
+interface Live {
+    chat: string;
+    message: string;
+}
+
+interface LiveChannel {
+    date: Date;
+    title: string;
+    name: string;
+}
+
 interface Guild {
     chat?: string;
+    live?: Live;
     channels: TwitchChannelNames;
 }
 
@@ -67,6 +79,7 @@ class Twitch implements CommandModule, WebhookModule {
     clientSecret = "";
     token = "";
     antiDupe = new Set();
+    activeChannels: Map<string, LiveChannel> = new Map();
 
     async onLoad(): Promise<void> {
         this.clientId = BotUtils.getValue("twitchId");
@@ -92,6 +105,10 @@ class Twitch implements CommandModule, WebhookModule {
         }
         if (command.length === 2 && command[1] === "list") {
             this.list(message);
+            return;
+        }
+        if (command.length === 2 && command[1] === "live") {
+            this.live(message);
             return;
         }
         if (command.length === 2) {
@@ -138,7 +155,7 @@ class Twitch implements CommandModule, WebhookModule {
         for (const guildId in this.data.channels[json.data[0].user_name.toLowerCase()].guildIds) {
             const guild = this.data.guilds[guildId];
             if (guild.chat === undefined) continue;
-            const chat = BotUtils.getDiscordClient().guilds.get(guildId)?.channels.get(guild.chat) as TextChannel;
+            const chat = BotUtils.getDiscordClient().guilds.cache.get(guildId)?.channels.cache.get(guild.chat) as TextChannel;
             chat.send(
                 dedent`
                 https://twitch.tv/${json.data[0].user_name} is now live!
@@ -169,12 +186,15 @@ class Twitch implements CommandModule, WebhookModule {
                     - show all active notifications
                 ${BotUtils.getPrefix()}twitch here
                     - toggle notification chatroom
+                ${BotUtils.getPrefix()}twitch live
+                    - display a list of live channels
             \`\`\`
             `.trim()
         );
     }
 
     list(message: Message): void {
+        if (message.guild == null) return;
         const channels = this.data.guilds[message.guild.id]?.channels;
         if (channels === undefined) {
             message.channel.send("You are not following any Twitch channels.");
@@ -193,7 +213,49 @@ class Twitch implements CommandModule, WebhookModule {
         );
     }
 
+    async live(message: Message): Promise<void> {
+        if (message.guild == null) return;
+        let guild = this.data.guilds[message.guild.id];
+        if (guild === undefined) {
+            guild = {
+                channels: {}
+            };
+            this.data.guilds[message.guild.id] = guild;
+        }
+
+        const setOffline = async (message: Message, guild: Guild): Promise<void> => {
+            if (message.guild === null || guild.live === undefined) return;
+            const msg = await (message.guild.channels.cache.get(guild.live.chat) as TextChannel).messages.fetch(guild.live.message);
+            const embed = msg?.embeds[0];
+            msg?.edit(embed?.setFooter("Offline - This post is no longer being updated"));
+            delete guild.live;
+        };
+
+        if (guild.live !== undefined) {
+            setOffline(message, guild);
+        }
+
+        const embed = new MessageEmbed()
+            .setColor("#9344fb")
+            .setTitle("Live Channels")
+            .setFooter("Live - This post is being updated regularly");
+
+        for (const livechannel of this.activeChannels.values()) {
+            if (guild.channels[livechannel.name.toLowerCase()] !== undefined) {
+                embed.addField(`${livechannel.name} | Started: ${livechannel.date.toTimeString()}`, livechannel.title);
+            }
+        }
+
+        const response = await message.channel.send(embed);
+
+        guild.live = {
+            chat: message.channel.id,
+            message: response.id
+        };
+    }
+
     async info(channel: string, message: Message): Promise<void> {
+        if (message.guild == null) return;
         const channelInfo = await this.searchChannel(channel);
         if (channelInfo?.error !== undefined) {
             message.channel.send(channelInfo.error);
@@ -207,6 +269,7 @@ class Twitch implements CommandModule, WebhookModule {
     }
 
     async follow(channel: string, message: Message): Promise<void> {
+        if (message.guild == null) return;
         const guild = this.data.guilds[message.guild.id];
         if (guild === undefined || guild.chat === undefined) {
             message.channel.send(`Please first assign a chat to notify in. The command is '${BotUtils.getPrefix()}twitch here'.`);
@@ -240,6 +303,7 @@ class Twitch implements CommandModule, WebhookModule {
     }
 
     async unfollow(channel: string, message: Message): Promise<void> {
+        if (message.guild == null) return;
         const guild = this.data.guilds[message.guild.id];
         if (guild.channels[channel] === undefined) {
             message.channel.send("Notifications are not active for this channel.");
@@ -330,6 +394,7 @@ class Twitch implements CommandModule, WebhookModule {
     }
 
     here(message: Message): void {
+        if (message.guild == null) return;
         let guild = this.data.guilds[message.guild.id];
         if (guild === undefined) {
             guild = {

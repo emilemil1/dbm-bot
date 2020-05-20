@@ -14,7 +14,7 @@ class Nick implements CommandModule {
             return;
         }
 
-        message.guild.me.setNickname(command.slice(1).join(" "))
+        message.guild?.me?.setNickname(command.slice(1).join(" "))
             .then(() => message.channel.send("My nickname has been changed!"));
     }
 }
