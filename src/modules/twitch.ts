@@ -123,24 +123,21 @@ class Twitch implements CommandModule, WebhookModule {
             this.data.channels[json.data[0].user_name?.toLowerCase()] === undefined ||
             this.antiDupe.has(json.data[0].user_name) ||
             Date.parse(json.data[0]["started_at"]) + 600000 < new Date().getTime()) {
-            console.log(Date.parse(json.data[0]["started_at"]) + 600000 < new Date().getTime());
-            console.log(Date.parse(json.data[0]["started_at"]) + 600000);
-            console.log(new Date().getTime());
+            if (json.data[0]) {
+                console.log(Date.parse(json.data[0]["started_at"]) + 600000 < new Date().getTime());
+                console.log(Date.parse(json.data[0]["started_at"]) + 600000);
+                console.log(new Date().getTime());
+            }
+
             return {
                 code: 200,
                 body: "Ok"
             };
         }
 
-        let sent = false;
         for (const guildId in this.data.channels[json.data[0].user_name.toLowerCase()].guildIds) {
             const guild = this.data.guilds[guildId];
             if (guild.chat === undefined) continue;
-            if (sent === false) {
-                this.antiDupe.add(json.data[0].user_name);
-                setTimeout(() => this.antiDupe.delete(json.data[0].user_name), 600000);
-                sent = true;
-            }
             const chat = BotUtils.getDiscordClient().guilds.get(guildId)?.channels.get(guild.chat) as TextChannel;
             chat.send(
                 dedent`
@@ -149,6 +146,9 @@ class Twitch implements CommandModule, WebhookModule {
                 `
             );
         }
+
+        this.antiDupe.add(json.data[0].user_name);
+        setTimeout(() => this.antiDupe.delete(json.data[0].user_name), 600000);
 
         return {
             code: 200,
