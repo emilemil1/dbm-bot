@@ -139,7 +139,7 @@ class Twitch implements CommandModule, WebhookModule {
         const json = JSON.parse(message.body);
 
         if (json.data.length === 0) {
-            const index = message.headers.link.indexOf("user_id="+8);
+            const index = message.headers.link.indexOf("user_id=")+8;
             const id = message.headers.link.substring(index, message.headers.link.indexOf(">", index));
             console.log(id);
             this.setLiveChannelOffline(id);
@@ -194,8 +194,7 @@ class Twitch implements CommandModule, WebhookModule {
                         activeChannel.guilds.push(guildId);
                         const embed = msg?.embeds[0];
                         if (embed === undefined) return;
-                        embed.addField(`https://twitch.tv/${activeChannel.name} | Live at ${activeChannel.date}`, "Streaming: " + activeChannel.title)
-                            .setDescription(`${activeChannel.date} - ${activeChannel.name} went live!\n•`);
+                        embed.addField(`https://twitch.tv/${activeChannel.name} | Live at ${activeChannel.date}`, "Streaming: " + activeChannel.title);
                         msg?.edit(embed);
 
                         msg.channel.send(`${activeChannel.date}: [${activeChannel.name}](https://twitch.tv/${activeChannel.name}) went live!`)
@@ -290,7 +289,7 @@ class Twitch implements CommandModule, WebhookModule {
 
         for (const livechannel of this.activeChannels.values()) {
             if (guild.channels[livechannel.name.toLowerCase()] !== undefined) {
-                embed.addField(`${livechannel.name} | Started: ${livechannel.date}`, "Streaming: " + livechannel.title);
+                embed.addField(`https://twitch.tv/${livechannel.name} | Live at ${livechannel.date}`, "Streaming: " + livechannel.title);
                 if (guild.live === undefined) {
                     livechannel.guilds.push(message.guild.id);
                 }
