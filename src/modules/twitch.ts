@@ -192,7 +192,13 @@ class Twitch implements CommandModule, WebhookModule {
                         }
                         activeChannel.guilds.push(guildId);
                         const embed = msg?.embeds[0];
-                        msg?.edit(embed?.addField(`${activeChannel.name} | Started: ${activeChannel.date.toTimeString()}`, activeChannel.title));
+                        if (embed === undefined) return;
+                        embed.addField(`[${activeChannel.name}](https://twitch.tv/${activeChannel.name}) | Started: ${activeChannel.date.toTimeString()}`, activeChannel.title)
+                            .setDescription(`${activeChannel.date.toTimeString()}: ${activeChannel.name} went live!`);
+                        msg?.edit(embed);
+
+                        msg.channel.send(`${activeChannel.date.toTimeString()}: [${activeChannel.name}](https://twitch.tv/${activeChannel.name}) went live!`)
+                            .then(msg => msg.delete());
                     })
                     .catch(() => delete guild.live);
             }
@@ -291,6 +297,7 @@ class Twitch implements CommandModule, WebhookModule {
             chat: message.channel.id,
             message: response.id
         };
+        console.log(this.data.guilds[message.guild.id].live);
     }
 
     async setLiveChannelOffline (channelId: string): Promise<void> {
