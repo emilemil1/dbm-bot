@@ -186,6 +186,7 @@ class Twitch implements CommandModule, WebhookModule {
             if (guild.live !== undefined) {
                 (BotUtils.getDiscordClient().guilds.cache.get(guildId)?.channels.cache.get(guild.live.chat) as TextChannel).messages.fetch(guild.live.message)
                     .then(msg => {
+                        console.log(msg);
                         if (msg.embeds.length === 0) {
                             delete guild.live;
                             return;
@@ -195,12 +196,16 @@ class Twitch implements CommandModule, WebhookModule {
                         if (embed === undefined) return;
                         embed.addField(`[${activeChannel.name}](https://twitch.tv/${activeChannel.name}) | Started: ${activeChannel.date.toTimeString()}`, activeChannel.title)
                             .setDescription(`${activeChannel.date.toTimeString()}: ${activeChannel.name} went live!`);
-                        msg?.edit(embed);
+                        msg?.edit(embed).catch(err => console.log(err));
 
                         msg.channel.send(`${activeChannel.date.toTimeString()}: [${activeChannel.name}](https://twitch.tv/${activeChannel.name}) went live!`)
-                            .then(msg => msg.delete());
+                            .then(msg => msg.delete())
+                            .catch(err => console.log(err));
                     })
-                    .catch(() => delete guild.live);
+                    .catch(err => {
+                        console.log(err);
+                        delete guild.live;
+                    });
             }
         }
 
@@ -297,7 +302,6 @@ class Twitch implements CommandModule, WebhookModule {
             chat: message.channel.id,
             message: response.id
         };
-        console.log(this.data.guilds[message.guild.id].live);
     }
 
     async setLiveChannelOffline (channelId: string): Promise<void> {
