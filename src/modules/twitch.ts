@@ -1,5 +1,5 @@
 import { CommandModule, ModuleType, BotUtils, PersistenceData, WebhookModule, WebhookMessage, WebhookResponse } from "discord-dbm";
-import { Message, TextChannel, MessageEmbed } from "discord.js";
+import { Message, TextChannel, MessageEmbed, Guild as DGuild } from "discord.js";
 import dedent from "dedent";
 import fetch, { RequestInit, Response } from "node-fetch";
 
@@ -16,6 +16,7 @@ interface LiveChannel {
     date: Date;
     title: string;
     name: string;
+    guilds: string[];
 }
 
 interface Guild {
@@ -136,15 +137,11 @@ class Twitch implements CommandModule, WebhookModule {
         }
 
         const json = JSON.parse(message.body);
-        if (json.data.length === 0 || 
-            this.data.channels[json.data[0].user_name?.toLowerCase()] === undefined ||
-            this.antiDupe.has(json.data[0].user_name) ||
-            Date.parse(json.data[0]["started_at"]) + 600000 < new Date().getTime()) {
-            if (json.data[0]) {
-                console.log(Date.parse(json.data[0]["started_at"]) + 600000 < new Date().getTime());
-                console.log(Date.parse(json.data[0]["started_at"]) + 600000);
-                console.log(new Date().getTime());
-            }
+
+        if (json.data.length === 0) {
+            const index = message.headers.link.lastIndexOf("user_id="+8);
+            const id = message.headers.link.substring(index, message.headers.link.indexOf(">", index));
+            this.setLiveChannelOffline(id);
 
             return {
                 code: 200,
@@ -152,16 +149,53 @@ class Twitch implements CommandModule, WebhookModule {
             };
         }
 
+        if (this.data.channels[json.data[0].user_name?.toLowerCase()] === undefined ||
+            this.antiDupe.has(json.data[0].user_name) ||
+            Date.parse(json.data[0]["started_at"]) + 600000 < new Date().getTime()) {
+
+            console.log(Date.parse(json.data[0]["started_at"]) + 600000 < new Date().getTime());
+            console.log(Date.parse(json.data[0]["started_at"]) + 600000);
+            console.log(new Date().getTime());
+
+            return {
+                code: 200,
+                body: "Ok"
+            };
+        }
+
+        const activeChannel: LiveChannel = {
+            date: json.data[0].started_at,
+            title: json.data[0].title,
+            name: json.data[0].user_name,
+            guilds: []
+        };
+
+        this.activeChannels.set(json.data[0].user_id, activeChannel);
+
         for (const guildId in this.data.channels[json.data[0].user_name.toLowerCase()].guildIds) {
             const guild = this.data.guilds[guildId];
-            if (guild.chat === undefined) continue;
-            const chat = BotUtils.getDiscordClient().guilds.cache.get(guildId)?.channels.cache.get(guild.chat) as TextChannel;
-            chat.send(
-                dedent`
-                https://twitch.tv/${json.data[0].user_name} is now live!
-                Streaming: ${json.data[0].title}
-                `
-            );
+            if (guild.chat !== undefined) {
+                const chat = BotUtils.getDiscordClient().guilds.cache.get(guildId)?.channels.cache.get(guild.chat) as TextChannel;
+                chat.send(
+                    dedent`
+                    https://twitch.tv/${json.data[0].user_name} is now live!
+                    Streaming: ${json.data[0].title}
+                    `
+                );
+            }
+            if (guild.live !== undefined) {
+                (BotUtils.getDiscordClient().guilds.cache.get(guildId)?.channels.cache.get(guild.live.chat) as TextChannel).messages.fetch(guild.live.message)
+                    .then(msg => {
+                        if (msg.embeds.length === 0) {
+                            delete guild.live;
+                            return;
+                        }
+                        activeChannel.guilds.push(guildId);
+                        const embed = msg?.embeds[0];
+                        msg?.edit(embed?.addField(`${activeChannel.name} | Started: ${activeChannel.date.toTimeString()}`, activeChannel.title));
+                    })
+                    .catch(() => delete guild.live);
+            }
         }
 
         this.antiDupe.add(json.data[0].user_name);
@@ -223,26 +257,31 @@ class Twitch implements CommandModule, WebhookModule {
             this.data.guilds[message.guild.id] = guild;
         }
 
-        const setOffline = async (message: Message, guild: Guild): Promise<void> => {
-            if (message.guild === null || guild.live === undefined) return;
-            const msg = await (message.guild.channels.cache.get(guild.live.chat) as TextChannel).messages.fetch(guild.live.message);
+        const updateoldlivepost = async (remoteguild: DGuild | null, localguild: Guild, post?: string): Promise<void> => {
+            if (remoteguild === null || localguild.live === undefined || post === undefined) return;
+            const msg = await (remoteguild.channels.cache.get(localguild.live.chat) as TextChannel).messages.fetch(post)
+                .catch(() => undefined);
             const embed = msg?.embeds[0];
+            if (embed === undefined) return;
             msg?.edit(embed?.setFooter("Offline - This post is no longer being updated"));
-            delete guild.live;
         };
+        
 
         if (guild.live !== undefined) {
-            setOffline(message, guild);
+            updateoldlivepost(message.guild, guild, guild.live.message);
         }
 
         const embed = new MessageEmbed()
             .setColor("#9344fb")
-            .setTitle("Live Channels")
-            .setFooter("Live - This post is being updated regularly");
+            .setAuthor("Live Channels", "https://cdn.discordapp.com/app-icons/710193225905995796/58574a723796ec1b95526b8d01e0e461.png?size=256")
+            .setFooter("Online - This post is being updated live!");
 
         for (const livechannel of this.activeChannels.values()) {
             if (guild.channels[livechannel.name.toLowerCase()] !== undefined) {
                 embed.addField(`${livechannel.name} | Started: ${livechannel.date.toTimeString()}`, livechannel.title);
+                if (guild.live === undefined) {
+                    livechannel.guilds.push(message.guild.id);
+                }
             }
         }
 
@@ -252,6 +291,36 @@ class Twitch implements CommandModule, WebhookModule {
             chat: message.channel.id,
             message: response.id
         };
+
+        setTimeout(() => updateoldlivepost(message.guild, guild, guild.live?.message));
+    }
+
+    async setLiveChannelOffline (channelId: string): Promise<void> {
+        const liveChannel = this.activeChannels.get(channelId);
+        if (liveChannel === undefined) return;
+
+        this.activeChannels.delete(channelId);
+
+        for (const guildId of liveChannel.guilds) {
+            const localguild = this.data.guilds[guildId];
+            const remoteguild = BotUtils.getDiscordClient().guilds.cache.get(guildId);
+            if (remoteguild === null || remoteguild === undefined || localguild.live === undefined) return;
+            (remoteguild.channels.cache.get(localguild.live.chat) as TextChannel).messages.fetch(localguild.live.message)
+                .then(msg => {
+                    const embed = msg?.embeds[0];
+                    if (embed === undefined) return;
+                    let index = 0;
+                    for (const field of embed.fields) {
+                        if (field.value === liveChannel.title) {
+                            embed.fields.splice(index);
+                            break;
+                        }
+                        index++;
+                    }
+                    msg?.edit(embed);
+                })
+                .catch(() => delete localguild.live);
+        }
     }
 
     async info(channel: string, message: Message): Promise<void> {
