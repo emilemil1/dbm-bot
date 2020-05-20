@@ -122,7 +122,7 @@ class Twitch implements CommandModule, WebhookModule {
         if (json.data.length === 0 || 
             this.data.channels[json.data[0].user_name?.toLowerCase()] === undefined ||
             this.antiDupe.has(json.data[0].user_name) ||
-            Date.parse(json.date[0]["started_at"]) + 600000 < new Date().getTime()) {
+            Date.parse(json.data[0]["started_at"]) + 600000 < new Date().getTime()) {
             return {
                 code: 200,
                 body: "Ok"
