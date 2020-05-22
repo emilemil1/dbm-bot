@@ -90,12 +90,13 @@ class Twitch implements CommandModule, WebhookModule {
         if (data !== undefined) this.data = data as unknown as Persistence;
 
         const follows = (await this.getFollows()).map(f => f.id).map(f => "user_id="+f);
-        const options: RequestInit = {
-            method: "GET",
-            headers: {
-                "Client-ID": this.clientId,
-                "Authorization": "Bearer " + this.token
-            },
+        const options = (): RequestInit => {
+            return {
+                headers: {
+                    "Client-ID": this.clientId,
+                    "Authorization": "Bearer " + this.token
+                },
+            };
         };
         for (let index = 0; index <= follows.length; index+=100) {
             const json = await (await this.call(`https://api.twitch.tv/helix/streams?first=100&${follows.join("&")}`, options)).json();
@@ -441,12 +442,15 @@ class Twitch implements CommandModule, WebhookModule {
     }
 
     async searchChannel(channel: string): Promise<TwitchChannelInfo> {
-        const options: RequestInit = {
-            headers: {
-                "Accept": "application/vnd.twitchtv.v5+json",
-                "Client-ID": this.clientId,
-                "Authorization": "Bearer " + this.token
-            }
+
+        const options = (): RequestInit => {
+            return {
+                headers: {
+                    "Accept": "application/vnd.twitchtv.v5+json",
+                    "Client-ID": this.clientId,
+                    "Authorization": "Bearer " + this.token
+                }
+            };
         };
         const result = await (await this.call(`https://api.twitch.tv/kraken/search/channels?query=${channel}&limit=1`, options)).json();
         if (result.error !== undefined) {
@@ -475,11 +479,13 @@ class Twitch implements CommandModule, WebhookModule {
     }
 
     async getChannelInfo(channel: string): Promise<TwitchChannelInfo> {
-        const options: RequestInit = {
-            headers: {
-                "Client-ID": this.clientId,
-                "Authorization": "Bearer " + this.token
-            }
+        const options = (): RequestInit => {
+            return {
+                headers: {
+                    "Client-ID": this.clientId,
+                    "Authorization": "Bearer " + this.token
+                }
+            };
         };
         const result = await (await this.call(`https://api.twitch.tv/helix/users?login=${channel.toLowerCase()}`, options)).json();
         if (result.error !== undefined) {
@@ -530,21 +536,23 @@ class Twitch implements CommandModule, WebhookModule {
     async subscribe(id: string, subscribe: boolean): Promise<string|undefined> {
         const url = BotUtils.getValue("url");
         const port = BotUtils.getValue("webhookPort");
-        const options: RequestInit = {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Client-ID": this.clientId,
-                "Authorization": "Bearer " + this.token
-            },
-            body: JSON.stringify(
-                {
-                    "hub.callback": `https://${url}:${port}/webhook/twitch`,
-                    "hub.mode": subscribe ? "subscribe" : "unsubscribe",
-                    "hub.topic": "https://api.twitch.tv/helix/streams?user_id=" + id,
-                    "hub.lease_seconds": "864000"
-                }
-            ) 
+        const options = (): RequestInit => {
+            return {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Client-ID": this.clientId,
+                    "Authorization": "Bearer " + this.token
+                },
+                body: JSON.stringify(
+                    {
+                        "hub.callback": `https://${url}:${port}/webhook/twitch`,
+                        "hub.mode": subscribe ? "subscribe" : "unsubscribe",
+                        "hub.topic": "https://api.twitch.tv/helix/streams?user_id=" + id,
+                        "hub.lease_seconds": "864000"
+                    }
+                ) 
+            };
         };
         const result = await this.call("https://api.twitch.tv/helix/webhooks/hub", options);
         if (!result.ok) {
@@ -584,12 +592,13 @@ class Twitch implements CommandModule, WebhookModule {
     }
 
     async getFollows(): Promise<RemoteFollows[]> {
-        const options: RequestInit = {
-            method: "GET",
-            headers: {
-                "Client-ID": this.clientId,
-                "Authorization": "Bearer " + this.token
-            }
+        const options = (): RequestInit => {
+            return {
+                headers: {
+                    "Client-ID": this.clientId,
+                    "Authorization": "Bearer " + this.token
+                }
+            };
         };
         let page;
         let result;
@@ -610,8 +619,8 @@ class Twitch implements CommandModule, WebhookModule {
              
     }
 
-    async call(url: string, options: RequestInit, scopes?: string[], retry = true): Promise<Response> {
-        const result = await fetch(url, options);
+    async call(url: string, options: () => RequestInit, scopes?: string[], retry = true): Promise<Response> {
+        const result = await fetch(url, options());
         if (result.ok || retry === false) {
             return result;
         }
