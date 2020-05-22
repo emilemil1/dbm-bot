@@ -90,8 +90,15 @@ class Twitch implements CommandModule, WebhookModule {
         if (data !== undefined) this.data = data as unknown as Persistence;
 
         const follows = (await this.getFollows()).map(f => f.id).map(f => "user_id="+f);
+        const options: RequestInit = {
+            method: "GET",
+            headers: {
+                "Client-ID": this.clientId,
+                "Authorization": "Bearer " + this.token
+            },
+        };
         for (let index = 0; index <= follows.length; index+=100) {
-            const json = await (await this.call(`https://api.twitch.tv/helix/streams?first=100&${follows.join("&")}`, {})).json();
+            const json = await (await this.call(`https://api.twitch.tv/helix/streams?first=100&${follows.join("&")}`, options)).json();
             for (const stream of json.data) {
                 
                 const activeChannel: LiveChannel = {
@@ -589,6 +596,7 @@ class Twitch implements CommandModule, WebhookModule {
         const data = [];
         do {
             result = await (await this.call(`https://api.twitch.tv/helix/webhooks/subscriptions?first=100${page !== undefined ? "&after="+page : ""}`, options)).json();
+            console.log(result);
             page = result.pagination.cursor;
             data.push(...result.data);
         } while (page !== undefined);
