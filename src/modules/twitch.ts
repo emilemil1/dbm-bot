@@ -88,6 +88,22 @@ class Twitch implements CommandModule, WebhookModule {
         setInterval(() => this.renewFollows(), 3600000);
         const data = await BotUtils.storage?.get("twitch");
         if (data !== undefined) this.data = data as unknown as Persistence;
+
+        const follows = (await this.getFollows()).map(f => f.id).map(f => "user_id="+f);
+        for (let index = 0; index <= follows.length; index+=100) {
+            const json = await (await this.call(`https://api.twitch.tv/helix/streams?first=100&${follows.join("&")}`, {})).json();
+            for (const stream of json.data) {
+                
+                const activeChannel: LiveChannel = {
+                    date: new Date(stream.started_at),
+                    title: stream.title,
+                    name: stream.user_name,
+                    guilds: Object.getOwnPropertyNames(this.data.channels[stream.user_id].guildIds)
+                };
+                this.activeChannels.set(stream.user_id, activeChannel);
+                console.log(activeChannel);
+            }
+        }
     }
 
     async onShutdown(): Promise<void> {
