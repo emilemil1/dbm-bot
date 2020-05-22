@@ -84,7 +84,7 @@ class Twitch implements CommandModule, WebhookModule {
     async onLoad(): Promise<void> {
         this.clientId = BotUtils.getValue("twitchId");
         this.clientSecret = BotUtils.getValue("twitchSecret");
-        this.authorize();
+        await this.authorize();
         setInterval(() => this.renewFollows(), 3600000);
         const data = await BotUtils.storage?.get("twitch");
         if (data !== undefined) this.data = data as unknown as Persistence;
