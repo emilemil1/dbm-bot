@@ -202,7 +202,7 @@ class Twitch implements CommandModule, WebhookModule {
                             .setFooter("Online - This post is being updated live!");
                         msg?.edit(embed);
 
-                        msg.channel.send(`${activeChannel.name} is live!`)
+                        msg.channel.send(`${activeChannel.name} is now live!`)
                             .then(msg => msg.delete());
                     })
                     .catch(() => delete guild.live);
@@ -332,7 +332,6 @@ class Twitch implements CommandModule, WebhookModule {
                     for (const field of embed.fields) {
                         if (field.name === `https://twitch.tv/${liveChannel.name}`) {
                             embed.fields.splice(index);
-                            console.log("splice");
                             break;
                         }
                         index++;
@@ -342,7 +341,7 @@ class Twitch implements CommandModule, WebhookModule {
                     }
                     msg?.edit(embed);
                 })
-                .catch(err => {console.log(err); delete localguild.live;});
+                .catch(() => delete localguild.live);
         }
     }
 
