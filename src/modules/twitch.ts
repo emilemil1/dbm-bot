@@ -81,6 +81,7 @@ class Twitch implements CommandModule, WebhookModule {
     clientSecret = "";
     token = "";
     activeChannels: Map<string, LiveChannel> = new Map();
+    dupe = new Set();
 
     async onLoad(): Promise<void> {
         this.clientId = BotUtils.getValue("twitchId");
@@ -184,7 +185,7 @@ class Twitch implements CommandModule, WebhookModule {
             };
         }
 
-        const update = this.activeChannels.has(json.data[0].user_id);
+        const update = this.activeChannels.has(json.data[0].user_id) || this.dupe.has(json.data[0].user_id);
 
         const activeChannel: LiveChannel = {
             date: new Date(json.data[0].started_at),
@@ -192,6 +193,9 @@ class Twitch implements CommandModule, WebhookModule {
             name: json.data[0].user_name,
             guilds: []
         };
+
+        this.dupe.add(json.data[0].user_id);
+        setTimeout(() => this.dupe.delete(json.data[0].user_id), 900000);
 
         this.activeChannels.set(json.data[0].user_id, activeChannel);
 
