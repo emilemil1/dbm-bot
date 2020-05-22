@@ -13,7 +13,7 @@ interface Live {
 }
 
 interface LiveChannel {
-    date: string;
+    date: Date;
     title: string;
     name: string;
     guilds: string[];
@@ -160,7 +160,7 @@ class Twitch implements CommandModule, WebhookModule {
         }
 
         const activeChannel: LiveChannel = {
-            date: this.getTime(new Date(json.data[0].started_at)) + " GMT",
+            date: new Date(json.data[0].started_at),
             title: json.data[0].title,
             name: json.data[0].user_name,
             guilds: []
@@ -202,7 +202,7 @@ class Twitch implements CommandModule, WebhookModule {
                             .setFooter("Online - This post is being updated live!");
                         msg?.edit(embed);
 
-                        msg.channel.send(`${activeChannel.date}: [${activeChannel.name}](https://twitch.tv/${activeChannel.name}) went live!`)
+                        msg.channel.send(`${activeChannel.name} is live!`)
                             .then(msg => msg.delete());
                     })
                     .catch(() => delete guild.live);
@@ -302,7 +302,7 @@ class Twitch implements CommandModule, WebhookModule {
         }
 
         if (embed.fields.length === 0) {
-            embed.setDescription("It seems no one is streaming at the moment.");
+            embed.setDescription("*It seems no one is streaming at the moment...*");
         }
 
         const response = await message.channel.send(embed);
@@ -315,7 +315,6 @@ class Twitch implements CommandModule, WebhookModule {
 
     async setLiveChannelOffline (channelId: string): Promise<void> {
         const liveChannel = this.activeChannels.get(channelId);
-        console.log(liveChannel);
         if (liveChannel === undefined) return;
 
         this.activeChannels.delete(channelId);
@@ -323,18 +322,17 @@ class Twitch implements CommandModule, WebhookModule {
         for (const guildId of liveChannel.guilds) {
             //TODO
             const localguild = this.data.guilds[guildId];
-            console.log(localguild);
             const remoteguild = BotUtils.getDiscordClient().guilds.cache.get(guildId);
             if (remoteguild === null || remoteguild === undefined || localguild.live === undefined) return;
             (remoteguild.channels.cache.get(localguild.live.chat) as TextChannel).messages.fetch(localguild.live.message)
                 .then(msg => {
-                    console.log(msg);
                     const embed = msg?.embeds[0];
                     if (embed === undefined) return;
                     let index = 0;
                     for (const field of embed.fields) {
-                        if (field.value === liveChannel.title) {
+                        if (field.name === `https://twitch.tv/${liveChannel.name}`) {
                             embed.fields.splice(index);
+                            console.log("splice");
                             break;
                         }
                         index++;
@@ -344,7 +342,7 @@ class Twitch implements CommandModule, WebhookModule {
                     }
                     msg?.edit(embed);
                 })
-                .catch(() => delete localguild.live);
+                .catch(err => {console.log(err); delete localguild.live;});
         }
     }
 
