@@ -268,9 +268,9 @@ class Twitch implements CommandModule, WebhookModule {
                 ${BotUtils.getPrefix()}twitch here
                     - toggle notification chatroom
                 ${BotUtils.getPrefix()}twitch live
-                    - display an auto-updating list of live channels
+                    - display an auto-updating live channel list
                 ${BotUtils.getPrefix()}twitch live notify
-                    - toggle notifications when the live channels list is updated
+                    - toggle notifications on live channel list updates
             \`\`\`
             `.trim()
         );
