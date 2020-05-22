@@ -79,7 +79,6 @@ class Twitch implements CommandModule, WebhookModule {
     clientId = "";
     clientSecret = "";
     token = "";
-    antiDupe = new Set();
     activeChannels: Map<string, LiveChannel> = new Map();
 
     async onLoad(): Promise<void> {
@@ -138,6 +137,13 @@ class Twitch implements CommandModule, WebhookModule {
 
         const json = JSON.parse(message.body);
 
+        if (this.data.channels[json.data[0].user_name?.toLowerCase()] === undefined) {
+            return {
+                code: 200,
+                body: "Ok"
+            };
+        }
+
         if (json.data.length === 0) {
             const index = message.headers.link.indexOf("user_id=")+8;
             const id = message.headers.link.substring(index, message.headers.link.indexOf(">", index));
@@ -149,15 +155,7 @@ class Twitch implements CommandModule, WebhookModule {
             };
         }
 
-        if (this.data.channels[json.data[0].user_name?.toLowerCase()] === undefined ||
-            this.antiDupe.has(json.data[0].user_name) ||
-            Date.parse(json.data[0]["started_at"]) + 600000 < new Date().getTime()) {
-
-            return {
-                code: 200,
-                body: "Ok"
-            };
-        }
+        const update = this.activeChannels.has(json.data[0].user_id);
 
         const activeChannel: LiveChannel = {
             date: new Date(json.data[0].started_at),
@@ -170,7 +168,7 @@ class Twitch implements CommandModule, WebhookModule {
 
         for (const guildId in this.data.channels[json.data[0].user_name.toLowerCase()].guildIds) {
             const guild = this.data.guilds[guildId];
-            if (guild.chat !== undefined) {
+            if (guild.chat !== undefined && !update) {
                 const chat = BotUtils.getDiscordClient().guilds.cache.get(guildId)?.channels.cache.get(guild.chat) as TextChannel;
                 chat.send(
                     dedent`
@@ -192,25 +190,27 @@ class Twitch implements CommandModule, WebhookModule {
                         let index = 0;
                         for (const field of embed.fields) {
                             if (field.name === `https://twitch.tv/${activeChannel.name}`) {
-                                embed.fields.splice(index);
+                                if (update) {
+                                    field.value = "Streaming: " + activeChannel.title;
+                                } else {
+                                    embed.fields.splice(index);
+                                }
                                 index++;
                                 break;
                             }
                         }
-                        embed.addField(`https://twitch.tv/${activeChannel.name}`, "Streaming: " + activeChannel.title)
-                            .setDescription("")
-                            .setFooter("Online - This post is being updated live!");
+                        if (!update) {
+                            embed.addField(`https://twitch.tv/${activeChannel.name}`, "Streaming: " + activeChannel.title);
+                            embed.setDescription("");
+                            
+                            msg.channel.send(`${activeChannel.name} is now live!`)
+                                .then(msg => msg.delete());
+                        }
                         msg?.edit(embed);
-
-                        msg.channel.send(`${activeChannel.name} is now live!`)
-                            .then(msg => msg.delete());
                     })
                     .catch(() => delete guild.live);
             }
         }
-
-        this.antiDupe.add(json.data[0].user_name);
-        setTimeout(() => this.antiDupe.delete(json.data[0].user_name), 600000);
 
         return {
             code: 200,
