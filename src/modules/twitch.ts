@@ -10,6 +10,7 @@ interface TwitchChannelNames {
 interface Live {
     chat: string;
     message: string;
+    notify: boolean;
 }
 
 interface LiveChannel {
@@ -142,6 +143,11 @@ class Twitch implements CommandModule, WebhookModule {
             this.follow(command[2].toLowerCase(), message);
             return;
         }
+
+        if (command.length === 3 && command[1] === "live" && command[2] == "notify") {
+            this.livenotify(message);
+            return;
+        }
         if (command.length === 3 && command[1] === "unfollow") {
             this.unfollow(command[2].toLowerCase(), message);
             return;
@@ -226,8 +232,10 @@ class Twitch implements CommandModule, WebhookModule {
                             embed.addField(`https://twitch.tv/${activeChannel.name}`, "Streaming: " + activeChannel.title);
                             embed.setDescription("");
                             
-                            msg.channel.send(`${activeChannel.name} is now live!`)
-                                .then(msg => msg.delete());
+                            if (guild.live?.notify) {
+                                msg.channel.send(`${activeChannel.name} is now live!`)
+                                    .then(msg => msg.delete());
+                            }
                         }
                         msg?.edit(embed);
                     })
@@ -260,7 +268,9 @@ class Twitch implements CommandModule, WebhookModule {
                 ${BotUtils.getPrefix()}twitch here
                     - toggle notification chatroom
                 ${BotUtils.getPrefix()}twitch live
-                    - display a list of live channels
+                    - display an auto-updating list of live channels
+                ${BotUtils.getPrefix()}twitch live notify
+                    - toggle notifications when the live channels list is updated
             \`\`\`
             `.trim()
         );
@@ -332,8 +342,25 @@ class Twitch implements CommandModule, WebhookModule {
 
         guild.live = {
             chat: message.channel.id,
-            message: response.id
+            message: response.id,
+            notify: true
         };
+    }
+
+    livenotify(message: Message): void {
+        if (message.guild == null) return;
+        const guild = this.data.guilds[message.guild.id];
+        if (guild === undefined || guild.live === undefined) {
+            message.channel.send(`Please first set up live updates. The command is '${BotUtils.getPrefix()}twitch live'.`);
+            return;
+        }
+
+        guild.live.notify === !guild.live.notify;
+        if (guild.live.notify) {
+            message.channel.send("The Live Channels post will notify when channels go live.");
+        } else {
+            message.channel.send("The Live Channels post will no longer notify when channels go live.");
+        }
     }
 
     async setLiveChannelOffline (channelId: string): Promise<void> {
