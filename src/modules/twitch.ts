@@ -102,12 +102,12 @@ class Twitch implements CommandModule, WebhookModule {
             const json = await (await this.call(`https://api.twitch.tv/helix/streams?first=100&${follows.join("&")}`, options)).json();
             console.log(json);
             for (const stream of json.data) {
-                if (this.data.channels[stream.user_id] === undefined) continue;
+                if (this.data.channels[stream["user_name"].toLowerCase()] === undefined) continue;
                 const activeChannel: LiveChannel = {
                     date: new Date(stream.started_at),
                     title: stream.title,
                     name: stream.user_name,
-                    guilds: Object.getOwnPropertyNames(this.data.channels[stream.user_id].guildIds)
+                    guilds: Object.getOwnPropertyNames(this.data.channels[stream["user_name"].toLowerCase()].guildIds)
                 };
                 this.activeChannels.set(stream.user_id, activeChannel);
                 console.log(activeChannel);
