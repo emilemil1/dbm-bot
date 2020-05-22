@@ -100,7 +100,6 @@ class Twitch implements CommandModule, WebhookModule {
         };
         for (let index = 0; index <= follows.length; index+=100) {
             const json = await (await this.call(`https://api.twitch.tv/helix/streams?first=100&${follows.join("&")}`, options)).json();
-            console.log(json);
             for (const stream of json.data) {
                 if (this.data.channels[stream["user_name"].toLowerCase()] === undefined) continue;
                 const activeChannel: LiveChannel = {
@@ -361,7 +360,7 @@ class Twitch implements CommandModule, WebhookModule {
                         index++;
                     }
                     if (embed.fields.length === 0) {
-                        embed.setDescription("");
+                        embed.setDescription("*It seems no one is streaming at the moment...*");
                     }
                     msg?.edit(embed);
                 })
