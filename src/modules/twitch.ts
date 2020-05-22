@@ -100,8 +100,9 @@ class Twitch implements CommandModule, WebhookModule {
         };
         for (let index = 0; index <= follows.length; index+=100) {
             const json = await (await this.call(`https://api.twitch.tv/helix/streams?first=100&${follows.join("&")}`, options)).json();
+            console.log(json);
             for (const stream of json.data) {
-                
+                if (this.data.channels[stream.user_id] === undefined) continue;
                 const activeChannel: LiveChannel = {
                     date: new Date(stream.started_at),
                     title: stream.title,
@@ -605,7 +606,6 @@ class Twitch implements CommandModule, WebhookModule {
         const data = [];
         do {
             result = await (await this.call(`https://api.twitch.tv/helix/webhooks/subscriptions?first=100${page !== undefined ? "&after="+page : ""}`, options)).json();
-            console.log(result);
             page = result.pagination.cursor;
             data.push(...result.data);
         } while (page !== undefined);
