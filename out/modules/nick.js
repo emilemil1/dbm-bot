@@ -9,11 +9,11 @@ class Nick {
         };
     }
     async onCommand(command, message) {
+        var _a, _b;
         if (command.length === 1) {
             return;
         }
-        message.guild.me.setNickname(command.slice(1).join(" "))
-            .then(() => message.channel.send("My nickname has been changed!"));
+        (_b = (_a = message.guild) === null || _a === void 0 ? void 0 : _a.me) === null || _b === void 0 ? void 0 : _b.setNickname(command.slice(1).join(" ")).then(() => message.channel.send("My nickname has been changed!"));
     }
 }
 export default new Nick();

@@ -110,7 +110,6 @@ class Twitch implements CommandModule, WebhookModule {
                     guilds: Object.getOwnPropertyNames(this.data.channels[stream["user_name"].toLowerCase()].guildIds)
                 };
                 this.activeChannels.set(stream.user_id, activeChannel);
-                console.log(activeChannel);
             }
         }
     }
@@ -162,18 +161,18 @@ class Twitch implements CommandModule, WebhookModule {
 
         const json = JSON.parse(message.body);
 
-        if (this.data.channels[json.data[0].user_name?.toLowerCase()] === undefined) {
+        if (json.data.length === 0) {
+            const index = message.headers.link.indexOf("user_id=")+8;
+            const id = message.headers.link.substring(index, message.headers.link.indexOf(">", index));
+            this.setLiveChannelOffline(id);
+
             return {
                 code: 200,
                 body: "Ok"
             };
         }
 
-        if (json.data.length === 0) {
-            const index = message.headers.link.indexOf("user_id=")+8;
-            const id = message.headers.link.substring(index, message.headers.link.indexOf(">", index));
-            this.setLiveChannelOffline(id);
-
+        if (this.data.channels[json.data[0].user_name?.toLowerCase()] === undefined) {
             return {
                 code: 200,
                 body: "Ok"

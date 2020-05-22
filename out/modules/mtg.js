@@ -1,5 +1,5 @@
 import { ModuleType } from "discord-dbm";
-import Discord from "discord.js";
+import { MessageEmbed } from "discord.js";
 import Fuse from "fuse.js";
 import fetch from "node-fetch";
 class MTG {
@@ -81,7 +81,7 @@ class MTG {
         else if (card.prices.usd !== null) {
             footer.push(card.prices.usd + " €");
         }
-        const embed = new Discord.RichEmbed()
+        const embed = new MessageEmbed()
             .setImage(card.image_uris.border_crop)
             .setAuthor(`${card.name} (${card.set.toUpperCase()})`, undefined, card.scryfall_uri)
             .setFooter(`${footer.filter(s => s !== undefined && s !== "").join(" • ")}`);

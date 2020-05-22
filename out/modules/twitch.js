@@ -1,4 +1,5 @@
 import { ModuleType, BotUtils } from "discord-dbm";
+import { MessageEmbed } from "discord.js";
 import dedent from "dedent";
 import fetch from "node-fetch";
 class Twitch {
@@ -17,16 +18,41 @@ class Twitch {
         this.clientId = "";
         this.clientSecret = "";
         this.token = "";
+        this.activeChannels = new Map();
     }
     async onLoad() {
         var _a;
         this.clientId = BotUtils.getValue("twitchId");
         this.clientSecret = BotUtils.getValue("twitchSecret");
-        this.authorize();
+        await this.authorize();
         setInterval(() => this.renewFollows(), 3600000);
         const data = await ((_a = BotUtils.storage) === null || _a === void 0 ? void 0 : _a.get("twitch"));
         if (data !== undefined)
             this.data = data;
+        const follows = (await this.getFollows()).map(f => f.id).map(f => "user_id=" + f);
+        const options = () => {
+            return {
+                headers: {
+                    "Client-ID": this.clientId,
+                    "Authorization": "Bearer " + this.token
+                },
+            };
+        };
+        for (let index = 0; index <= follows.length; index += 100) {
+            const json = await (await this.call(`https://api.twitch.tv/helix/streams?first=100&${follows.join("&")}`, options)).json();
+            console.log(json);
+            for (const stream of json.data) {
+                if (this.data.channels[stream["user_name"].toLowerCase()] === undefined)
+                    continue;
+                const activeChannel = {
+                    date: new Date(stream.started_at),
+                    title: stream.title,
+                    name: stream.user_name,
+                    guilds: Object.getOwnPropertyNames(this.data.channels[stream["user_name"].toLowerCase()].guildIds)
+                };
+                this.activeChannels.set(stream.user_id, activeChannel);
+            }
+        }
     }
     async onShutdown() {
         var _a;
@@ -41,21 +67,30 @@ class Twitch {
             this.here(message);
             return;
         }
+        if (command.length === 2 && command[1] === "list") {
+            this.list(message);
+            return;
+        }
+        if (command.length === 2 && command[1] === "live") {
+            this.live(message);
+            return;
+        }
         if (command.length === 2) {
-            this.info(command[1], message);
+            this.info(command[1].toLowerCase(), message);
             return;
         }
         if (command.length === 3 && command[1] === "follow") {
-            this.follow(command[2], message);
+            this.follow(command[2].toLowerCase(), message);
             return;
         }
         if (command.length === 3 && command[1] === "unfollow") {
-            this.unfollow(command[2], message);
+            this.unfollow(command[2].toLowerCase(), message);
             return;
         }
     }
     async hook(message) {
-        var _a;
+        var _a, _b, _c;
+        console.log(message);
         if (message.body === "") {
             const index = message.webhook.indexOf("hub.challenge=");
             return {
@@ -64,38 +99,196 @@ class Twitch {
             };
         }
         const json = JSON.parse(message.body);
-        if (json.data.length === 0 || this.data.channels[json.data[0].user_name] === undefined) {
+        if (this.data.channels[(_a = json.data[0].user_name) === null || _a === void 0 ? void 0 : _a.toLowerCase()] === undefined) {
             return {
-                code: 200
+                code: 200,
+                body: "Ok"
             };
         }
-        for (const guildId in this.data.channels[json.data[0].user_name].guildIds) {
+        if (json.data.length === 0) {
+            const index = message.headers.link.indexOf("user_id=") + 8;
+            const id = message.headers.link.substring(index, message.headers.link.indexOf(">", index));
+            this.setLiveChannelOffline(id);
+            return {
+                code: 200,
+                body: "Ok"
+            };
+        }
+        const update = this.activeChannels.has(json.data[0].user_id);
+        const activeChannel = {
+            date: new Date(json.data[0].started_at),
+            title: json.data[0].title,
+            name: json.data[0].user_name,
+            guilds: []
+        };
+        this.activeChannels.set(json.data[0].user_id, activeChannel);
+        for (const guildId in this.data.channels[json.data[0].user_name.toLowerCase()].guildIds) {
             const guild = this.data.guilds[guildId];
-            if (guild.chat === undefined)
-                continue;
-            const chat = (_a = BotUtils.getDiscordClient().guilds.get(guildId)) === null || _a === void 0 ? void 0 : _a.channels.get(guild.chat);
-            chat.send(dedent `
-                https://twitch.tv/${json.data[0].user_name} is now live!
-                Streaming: ${json.data[0].title}
-                `);
+            if (guild.chat !== undefined && !update) {
+                const chat = (_b = BotUtils.getDiscordClient().guilds.cache.get(guildId)) === null || _b === void 0 ? void 0 : _b.channels.cache.get(guild.chat);
+                chat.send(dedent `
+                    https://twitch.tv/${json.data[0].user_name} is now live!
+                    Streaming: ${json.data[0].title}
+                    `);
+            }
+            if (guild.live !== undefined) {
+                ((_c = BotUtils.getDiscordClient().guilds.cache.get(guildId)) === null || _c === void 0 ? void 0 : _c.channels.cache.get(guild.live.chat)).messages.fetch(guild.live.message)
+                    .then(msg => {
+                    if (msg.embeds.length === 0) {
+                        delete guild.live;
+                        return;
+                    }
+                    activeChannel.guilds.push(guildId);
+                    const embed = msg === null || msg === void 0 ? void 0 : msg.embeds[0];
+                    if (embed === undefined)
+                        return;
+                    let index = 0;
+                    for (const field of embed.fields) {
+                        if (field.name === `https://twitch.tv/${activeChannel.name}`) {
+                            if (update) {
+                                field.value = "Streaming: " + activeChannel.title;
+                            }
+                            else {
+                                embed.fields.splice(index);
+                            }
+                            index++;
+                            break;
+                        }
+                    }
+                    if (!update) {
+                        embed.addField(`https://twitch.tv/${activeChannel.name}`, "Streaming: " + activeChannel.title);
+                        embed.setDescription("");
+                        msg.channel.send(`${activeChannel.name} is now live!`)
+                            .then(msg => msg.delete());
+                    }
+                    msg === null || msg === void 0 ? void 0 : msg.edit(embed);
+                })
+                    .catch(() => delete guild.live);
+            }
         }
         return {
-            code: 200
+            code: 200,
+            body: "Ok"
         };
+    }
+    getTime(date) {
+        const timeString = date.toTimeString();
+        return timeString.substring(0, timeString.indexOf(" "));
     }
     help(message) {
         message.channel.send(dedent `
-            \`\`\`Commands:
+            \`\`\`
+            Commands:
                 ${BotUtils.getPrefix()}twitch [channel]
                     - display channel info
                 ${BotUtils.getPrefix()}twitch follow/unfollow [channel]
                     - toggle channel notifications
+                ${BotUtils.getPrefix()}twitch list
+                    - show all active notifications
                 ${BotUtils.getPrefix()}twitch here
-                    - toggle notification chatroom\`\`\`
+                    - toggle notification chatroom
+                ${BotUtils.getPrefix()}twitch live
+                    - display a list of live channels
+            \`\`\`
             `.trim());
+    }
+    list(message) {
+        var _a;
+        if (message.guild == null)
+            return;
+        const channels = (_a = this.data.guilds[message.guild.id]) === null || _a === void 0 ? void 0 : _a.channels;
+        if (channels === undefined) {
+            message.channel.send("You are not following any Twitch channels.");
+            return;
+        }
+        const channelNames = Object.getOwnPropertyNames(channels).sort().join("\n");
+        message.channel.send(dedent `
+            You are following these Twitch channels:
+            \`\`\`
+            ${channelNames}
+            \`\`\`
+            `.trim());
+    }
+    async live(message) {
+        if (message.guild == null)
+            return;
+        let guild = this.data.guilds[message.guild.id];
+        if (guild === undefined) {
+            guild = {
+                channels: {}
+            };
+            this.data.guilds[message.guild.id] = guild;
+        }
+        const updateoldlivepost = async (remoteguild, localguild, post) => {
+            if (remoteguild === null || localguild.live === undefined || post === undefined)
+                return;
+            const msg = await remoteguild.channels.cache.get(localguild.live.chat).messages.fetch(post)
+                .catch(() => undefined);
+            const embed = msg === null || msg === void 0 ? void 0 : msg.embeds[0];
+            if (embed === undefined)
+                return;
+            msg === null || msg === void 0 ? void 0 : msg.edit(embed === null || embed === void 0 ? void 0 : embed.setFooter("Offline - This post is no longer being updated"));
+        };
+        if (guild.live !== undefined) {
+            updateoldlivepost(message.guild, guild, guild.live.message);
+        }
+        const embed = new MessageEmbed()
+            .setColor("#9344fb")
+            .setAuthor("Live Channels", "https://cdn.discordapp.com/app-icons/710193225905995796/58574a723796ec1b95526b8d01e0e461.png?size=256")
+            .setFooter("Online - This post is being updated live!");
+        for (const livechannel of this.activeChannels.values()) {
+            if (guild.channels[livechannel.name.toLowerCase()] !== undefined) {
+                embed.addField(`https://twitch.tv/${livechannel.name}`, "Streaming: " + livechannel.title);
+                if (guild.live === undefined) {
+                    livechannel.guilds.push(message.guild.id);
+                }
+            }
+        }
+        if (embed.fields.length === 0) {
+            embed.setDescription("*It seems no one is streaming at the moment...*");
+        }
+        const response = await message.channel.send(embed);
+        guild.live = {
+            chat: message.channel.id,
+            message: response.id
+        };
+    }
+    async setLiveChannelOffline(channelId) {
+        const liveChannel = this.activeChannels.get(channelId);
+        if (liveChannel === undefined)
+            return;
+        this.activeChannels.delete(channelId);
+        for (const guildId of liveChannel.guilds) {
+            //TODO
+            const localguild = this.data.guilds[guildId];
+            const remoteguild = BotUtils.getDiscordClient().guilds.cache.get(guildId);
+            if (remoteguild === null || remoteguild === undefined || localguild.live === undefined)
+                return;
+            remoteguild.channels.cache.get(localguild.live.chat).messages.fetch(localguild.live.message)
+                .then(msg => {
+                const embed = msg === null || msg === void 0 ? void 0 : msg.embeds[0];
+                if (embed === undefined)
+                    return;
+                let index = 0;
+                for (const field of embed.fields) {
+                    if (field.name === `https://twitch.tv/${liveChannel.name}`) {
+                        embed.fields.splice(index);
+                        break;
+                    }
+                    index++;
+                }
+                if (embed.fields.length === 0) {
+                    embed.setDescription("");
+                }
+                msg === null || msg === void 0 ? void 0 : msg.edit(embed);
+            })
+                .catch(() => delete localguild.live);
+        }
     }
     async info(channel, message) {
         var _a;
+        if (message.guild == null)
+            return;
         const channelInfo = await this.searchChannel(channel);
         if ((channelInfo === null || channelInfo === void 0 ? void 0 : channelInfo.error) !== undefined) {
             message.channel.send(channelInfo.error);
@@ -108,6 +301,8 @@ class Twitch {
         message.channel.send(`https://twitch.tv/${channelInfo.name}${notificationsEnabled ? " (notifications enabled)" : ""}`);
     }
     async follow(channel, message) {
+        if (message.guild == null)
+            return;
         const guild = this.data.guilds[message.guild.id];
         if (guild === undefined || guild.chat === undefined) {
             message.channel.send(`Please first assign a chat to notify in. The command is '${BotUtils.getPrefix()}twitch here'.`);
@@ -137,6 +332,8 @@ class Twitch {
         return;
     }
     async unfollow(channel, message) {
+        if (message.guild == null)
+            return;
         const guild = this.data.guilds[message.guild.id];
         if (guild.channels[channel] === undefined) {
             message.channel.send("Notifications are not active for this channel.");
@@ -157,12 +354,14 @@ class Twitch {
         message.channel.send("Notifications disabled for Twitch channel: " + channelInfo.displayName);
     }
     async searchChannel(channel) {
-        const options = {
-            headers: {
-                "Accept": "application/vnd.twitchtv.v5+json",
-                "Client-ID": this.clientId,
-                "Authorization": "Bearer " + this.token
-            }
+        const options = () => {
+            return {
+                headers: {
+                    "Accept": "application/vnd.twitchtv.v5+json",
+                    "Client-ID": this.clientId,
+                    "Authorization": "Bearer " + this.token
+                }
+            };
         };
         const result = await (await this.call(`https://api.twitch.tv/kraken/search/channels?query=${channel}&limit=1`, options)).json();
         if (result.error !== undefined) {
@@ -188,11 +387,13 @@ class Twitch {
         };
     }
     async getChannelInfo(channel) {
-        const options = {
-            headers: {
-                "Client-ID": this.clientId,
-                "Authorization": "Bearer " + this.token
-            }
+        const options = () => {
+            return {
+                headers: {
+                    "Client-ID": this.clientId,
+                    "Authorization": "Bearer " + this.token
+                }
+            };
         };
         const result = await (await this.call(`https://api.twitch.tv/helix/users?login=${channel.toLowerCase()}`, options)).json();
         if (result.error !== undefined) {
@@ -218,6 +419,8 @@ class Twitch {
         };
     }
     here(message) {
+        if (message.guild == null)
+            return;
         let guild = this.data.guilds[message.guild.id];
         if (guild === undefined) {
             guild = {
@@ -238,19 +441,21 @@ class Twitch {
     async subscribe(id, subscribe) {
         const url = BotUtils.getValue("url");
         const port = BotUtils.getValue("webhookPort");
-        const options = {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Client-ID": this.clientId,
-                "Authorization": "Bearer " + this.token
-            },
-            body: JSON.stringify({
-                "hub.callback": `https://${url}:${port}/webhook/twitch`,
-                "hub.mode": subscribe ? "subscribe" : "unsubscribe",
-                "hub.topic": "https://api.twitch.tv/helix/streams?user_id=" + id,
-                "hub.lease_seconds": "864000"
-            })
+        const options = () => {
+            return {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Client-ID": this.clientId,
+                    "Authorization": "Bearer " + this.token
+                },
+                body: JSON.stringify({
+                    "hub.callback": `https://${url}:${port}/webhook/twitch`,
+                    "hub.mode": subscribe ? "subscribe" : "unsubscribe",
+                    "hub.topic": "https://api.twitch.tv/helix/streams?user_id=" + id,
+                    "hub.lease_seconds": "864000"
+                })
+            };
         };
         const result = await this.call("https://api.twitch.tv/helix/webhooks/hub", options);
         if (!result.ok) {
@@ -259,9 +464,14 @@ class Twitch {
     }
     async renewFollows() {
         const follows = await this.getFollows();
-        this.cleanFollows(follows);
-        for (const follow of follows) {
-            this.subscribe(follow, true);
+        this.cleanFollows(follows.map(fol => fol.id));
+        const date = new Date();
+        date.setDate(date.getDate() + 1);
+        const ids = new Set(Object.getOwnPropertyNames(this.data.channels).map(name => this.data.channels[name].id));
+        for (const entry of follows) {
+            if (date > new Date(entry.expiresAt) && ids.has(entry.id)) {
+                this.subscribe(entry.id, true);
+            }
         }
     }
     async cleanFollows(keepFollows) {
@@ -280,34 +490,31 @@ class Twitch {
         }
     }
     async getFollows() {
-        const options = {
-            method: "GET",
-            headers: {
-                "Client-ID": this.clientId,
-                "Authorization": "Bearer " + this.token
-            }
+        const options = () => {
+            return {
+                headers: {
+                    "Client-ID": this.clientId,
+                    "Authorization": "Bearer " + this.token
+                }
+            };
         };
-        const renewCandidates = [];
         let page;
         let result;
         const data = [];
-        const date = new Date();
-        date.setDate(date.getDate() + 1);
         do {
             result = await (await this.call(`https://api.twitch.tv/helix/webhooks/subscriptions?first=100${page !== undefined ? "&after=" + page : ""}`, options)).json();
             page = result.pagination.cursor;
             data.push(...result.data);
         } while (page !== undefined);
-        for (const entry of data) {
-            if (date > new Date(entry.expires_at)) {
-                const id = entry.topic.substring(entry.topic.lastIndexOf("=") + 1);
-                renewCandidates.push(id);
-            }
-        }
-        return renewCandidates;
+        return data.map(entry => {
+            return {
+                id: entry.topic.substring(entry.topic.lastIndexOf("=") + 1),
+                expiresAt: entry.expires_at
+            };
+        });
     }
     async call(url, options, scopes, retry = true) {
-        const result = await fetch(url, options);
+        const result = await fetch(url, options());
         if (result.ok || retry === false) {
             return result;
         }
