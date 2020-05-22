@@ -354,12 +354,12 @@ class Twitch implements CommandModule, WebhookModule {
             message.channel.send(`Please first set up live updates. The command is '${BotUtils.getPrefix()}twitch live'.`);
             return;
         }
-        
+
         if (guild.live.notify === true) {
-            message.channel.send("The Live Channels post will notify when channels go live.");
+            message.channel.send("The Live Channels post will no longer notify when channels go live.");
             guild.live.notify = false;
         } else {
-            message.channel.send("The Live Channels post will no longer notify when channels go live.");
+            message.channel.send("The Live Channels post will notify when channels go live.");
             guild.live.notify = true;
         }
     }
