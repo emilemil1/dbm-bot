@@ -113,15 +113,15 @@ class Twitch implements CommandModule, WebhookModule {
             return;
         }
         if (command.length === 2) {
-            this.info(command[1], message);
+            this.info(command[1].toLowerCase(), message);
             return;
         }
         if (command.length === 3 && command[1] === "follow") {
-            this.follow(command[2], message);
+            this.follow(command[2].toLowerCase(), message);
             return;
         }
         if (command.length === 3 && command[1] === "unfollow") {
-            this.unfollow(command[2], message);
+            this.unfollow(command[2].toLowerCase(), message);
             return;
         }
     }
@@ -141,7 +141,6 @@ class Twitch implements CommandModule, WebhookModule {
         if (json.data.length === 0) {
             const index = message.headers.link.indexOf("user_id=")+8;
             const id = message.headers.link.substring(index, message.headers.link.indexOf(">", index));
-            console.log(id);
             this.setLiveChannelOffline(id);
 
             return {
@@ -153,10 +152,6 @@ class Twitch implements CommandModule, WebhookModule {
         if (this.data.channels[json.data[0].user_name?.toLowerCase()] === undefined ||
             this.antiDupe.has(json.data[0].user_name) ||
             Date.parse(json.data[0]["started_at"]) + 600000 < new Date().getTime()) {
-
-            console.log(Date.parse(json.data[0]["started_at"]) + 600000 < new Date().getTime());
-            console.log(Date.parse(json.data[0]["started_at"]) + 600000);
-            console.log(new Date().getTime());
 
             return {
                 code: 200,
@@ -194,7 +189,17 @@ class Twitch implements CommandModule, WebhookModule {
                         activeChannel.guilds.push(guildId);
                         const embed = msg?.embeds[0];
                         if (embed === undefined) return;
-                        embed.addField(`https://twitch.tv/${activeChannel.name} | Live at ${activeChannel.date}`, "Streaming: " + activeChannel.title);
+                        let index = 0;
+                        for (const field of embed.fields) {
+                            if (field.name === `https://twitch.tv/${activeChannel.name}`) {
+                                embed.fields.splice(index);
+                                index++;
+                                break;
+                            }
+                        }
+                        embed.addField(`https://twitch.tv/${activeChannel.name}`, "Streaming: " + activeChannel.title)
+                            .setDescription("")
+                            .setFooter("Online - This post is being updated live!");
                         msg?.edit(embed);
 
                         msg.channel.send(`${activeChannel.date}: [${activeChannel.name}](https://twitch.tv/${activeChannel.name}) went live!`)
@@ -274,7 +279,7 @@ class Twitch implements CommandModule, WebhookModule {
                 .catch(() => undefined);
             const embed = msg?.embeds[0];
             if (embed === undefined) return;
-            msg?.edit(embed?.setFooter(this.getTime(new Date()) + " GMT | Offline - This post is no longer being updated"));
+            msg?.edit(embed?.setFooter("Offline - This post is no longer being updated"));
         };
         
 
@@ -285,15 +290,19 @@ class Twitch implements CommandModule, WebhookModule {
         const embed = new MessageEmbed()
             .setColor("#9344fb")
             .setAuthor("Live Channels", "https://cdn.discordapp.com/app-icons/710193225905995796/58574a723796ec1b95526b8d01e0e461.png?size=256")
-            .setFooter(this.getTime(new Date()) + " GMT | Online - This post is being updated live!");
+            .setFooter("Online - This post is being updated live!");
 
         for (const livechannel of this.activeChannels.values()) {
             if (guild.channels[livechannel.name.toLowerCase()] !== undefined) {
-                embed.addField(`https://twitch.tv/${livechannel.name} | Live at ${livechannel.date}`, "Streaming: " + livechannel.title);
+                embed.addField(`https://twitch.tv/${livechannel.name}`, "Streaming: " + livechannel.title);
                 if (guild.live === undefined) {
                     livechannel.guilds.push(message.guild.id);
                 }
             }
+        }
+
+        if (embed.fields.length === 0) {
+            embed.setDescription("It seems no one is streaming at the moment.");
         }
 
         const response = await message.channel.send(embed);
@@ -311,14 +320,15 @@ class Twitch implements CommandModule, WebhookModule {
 
         this.activeChannels.delete(channelId);
 
-        console.log(this.activeChannels);
-
         for (const guildId of liveChannel.guilds) {
+            //TODO
             const localguild = this.data.guilds[guildId];
+            console.log(localguild);
             const remoteguild = BotUtils.getDiscordClient().guilds.cache.get(guildId);
             if (remoteguild === null || remoteguild === undefined || localguild.live === undefined) return;
             (remoteguild.channels.cache.get(localguild.live.chat) as TextChannel).messages.fetch(localguild.live.message)
                 .then(msg => {
+                    console.log(msg);
                     const embed = msg?.embeds[0];
                     if (embed === undefined) return;
                     let index = 0;
@@ -328,6 +338,9 @@ class Twitch implements CommandModule, WebhookModule {
                             break;
                         }
                         index++;
+                    }
+                    if (embed.fields.length === 0) {
+                        embed.setDescription("");
                     }
                     msg?.edit(embed);
                 })
