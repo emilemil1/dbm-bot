@@ -263,17 +263,17 @@ class Twitch implements CommandModule, WebhookModule {
             dedent`
             \`\`\`
             Commands:
-                ${BotUtils.getPrefix()}twitch [channel]
+                ${BotUtils.getPrefix(message.guild?.id)}twitch [channel]
                     - display channel info
-                ${BotUtils.getPrefix()}twitch follow/unfollow [channel]
+                ${BotUtils.getPrefix(message.guild?.id)}twitch follow/unfollow [channel]
                     - toggle channel notifications
-                ${BotUtils.getPrefix()}twitch list
+                ${BotUtils.getPrefix(message.guild?.id)}twitch list
                     - show all followed channels
-                ${BotUtils.getPrefix()}twitch here
+                ${BotUtils.getPrefix(message.guild?.id)}twitch here
                     - toggle notification chatroom
-                ${BotUtils.getPrefix()}twitch live
+                ${BotUtils.getPrefix(message.guild?.id)}twitch live
                     - display an auto-updating live channel list
-                ${BotUtils.getPrefix()}twitch live notify
+                ${BotUtils.getPrefix(message.guild?.id)}twitch live notify
                     - toggle notifications on live channel list updates
             \`\`\`
             `.trim()
@@ -355,7 +355,7 @@ class Twitch implements CommandModule, WebhookModule {
         if (message.guild == null) return;
         const guild = this.data.guilds[message.guild.id];
         if (guild === undefined || guild.live === undefined) {
-            message.channel.send(`Please first set up live updates. The command is '${BotUtils.getPrefix()}twitch live'.`);
+            message.channel.send(`Please first set up live updates. The command is '${BotUtils.getPrefix(message.guild.id)}twitch live'.`);
             return;
         }
 
@@ -418,7 +418,7 @@ class Twitch implements CommandModule, WebhookModule {
         if (message.guild == null) return;
         const guild = this.data.guilds[message.guild.id];
         if (guild === undefined || guild.chat === undefined) {
-            message.channel.send(`Please first assign a chat to notify in. The command is '${BotUtils.getPrefix()}twitch here'.`);
+            message.channel.send(`Please first assign a chat to notify in. The command is '${BotUtils.getPrefix(message.guild.id)}twitch here'.`);
             return;
         }
 

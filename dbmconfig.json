@@ -10,7 +10,7 @@
         "./out/modules"
     ],
     "trigger": {
-        "word": "plz",
-        "spacing": true
+        "word": ".",
+        "spacing": false
     }
 }

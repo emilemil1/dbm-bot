@@ -19,6 +19,7 @@ class Twitch {
         this.clientSecret = "";
         this.token = "";
         this.activeChannels = new Map();
+        this.dupe = new Set();
     }
     async onLoad() {
         var _a;
@@ -40,7 +41,6 @@ class Twitch {
         };
         for (let index = 0; index <= follows.length; index += 100) {
             const json = await (await this.call(`https://api.twitch.tv/helix/streams?first=100&${follows.join("&")}`, options)).json();
-            console.log(json);
             for (const stream of json.data) {
                 if (this.data.channels[stream["user_name"].toLowerCase()] === undefined)
                     continue;
@@ -83,6 +83,10 @@ class Twitch {
             this.follow(command[2].toLowerCase(), message);
             return;
         }
+        if (command.length === 3 && command[1] === "live" && command[2] == "notify") {
+            this.livenotify(message);
+            return;
+        }
         if (command.length === 3 && command[1] === "unfollow") {
             this.unfollow(command[2].toLowerCase(), message);
             return;
@@ -99,12 +103,6 @@ class Twitch {
             };
         }
         const json = JSON.parse(message.body);
-        if (this.data.channels[(_a = json.data[0].user_name) === null || _a === void 0 ? void 0 : _a.toLowerCase()] === undefined) {
-            return {
-                code: 200,
-                body: "Ok"
-            };
-        }
         if (json.data.length === 0) {
             const index = message.headers.link.indexOf("user_id=") + 8;
             const id = message.headers.link.substring(index, message.headers.link.indexOf(">", index));
@@ -114,13 +112,21 @@ class Twitch {
                 body: "Ok"
             };
         }
-        const update = this.activeChannels.has(json.data[0].user_id);
+        if (this.data.channels[(_a = json.data[0].user_name) === null || _a === void 0 ? void 0 : _a.toLowerCase()] === undefined) {
+            return {
+                code: 200,
+                body: "Ok"
+            };
+        }
+        const update = this.activeChannels.has(json.data[0].user_id) || this.dupe.has(json.data[0].user_id);
         const activeChannel = {
             date: new Date(json.data[0].started_at),
             title: json.data[0].title,
             name: json.data[0].user_name,
             guilds: []
         };
+        this.dupe.add(json.data[0].user_id);
+        setTimeout(() => this.dupe.delete(json.data[0].user_id), 900000);
         this.activeChannels.set(json.data[0].user_id, activeChannel);
         for (const guildId in this.data.channels[json.data[0].user_name.toLowerCase()].guildIds) {
             const guild = this.data.guilds[guildId];
@@ -134,6 +140,7 @@ class Twitch {
             if (guild.live !== undefined) {
                 ((_c = BotUtils.getDiscordClient().guilds.cache.get(guildId)) === null || _c === void 0 ? void 0 : _c.channels.cache.get(guild.live.chat)).messages.fetch(guild.live.message)
                     .then(msg => {
+                    var _a;
                     if (msg.embeds.length === 0) {
                         delete guild.live;
                         return;
@@ -158,8 +165,10 @@ class Twitch {
                     if (!update) {
                         embed.addField(`https://twitch.tv/${activeChannel.name}`, "Streaming: " + activeChannel.title);
                         embed.setDescription("");
-                        msg.channel.send(`${activeChannel.name} is now live!`)
-                            .then(msg => msg.delete());
+                        if (((_a = guild.live) === null || _a === void 0 ? void 0 : _a.notify) === true) {
+                            msg.channel.send(`${activeChannel.name} is now live!`)
+                                .then(msg => msg.delete());
+                        }
                     }
                     msg === null || msg === void 0 ? void 0 : msg.edit(embed);
                 })
@@ -176,19 +185,22 @@ class Twitch {
         return timeString.substring(0, timeString.indexOf(" "));
     }
     help(message) {
+        var _a, _b, _c, _d, _e, _f;
         message.channel.send(dedent `
             \`\`\`
             Commands:
-                ${BotUtils.getPrefix()}twitch [channel]
+                ${BotUtils.getPrefix((_a = message.guild) === null || _a === void 0 ? void 0 : _a.id)}twitch [channel]
                     - display channel info
-                ${BotUtils.getPrefix()}twitch follow/unfollow [channel]
+                ${BotUtils.getPrefix((_b = message.guild) === null || _b === void 0 ? void 0 : _b.id)}twitch follow/unfollow [channel]
                     - toggle channel notifications
-                ${BotUtils.getPrefix()}twitch list
-                    - show all active notifications
-                ${BotUtils.getPrefix()}twitch here
+                ${BotUtils.getPrefix((_c = message.guild) === null || _c === void 0 ? void 0 : _c.id)}twitch list
+                    - show all followed channels
+                ${BotUtils.getPrefix((_d = message.guild) === null || _d === void 0 ? void 0 : _d.id)}twitch here
                     - toggle notification chatroom
-                ${BotUtils.getPrefix()}twitch live
-                    - display a list of live channels
+                ${BotUtils.getPrefix((_e = message.guild) === null || _e === void 0 ? void 0 : _e.id)}twitch live
+                    - display an auto-updating live channel list
+                ${BotUtils.getPrefix((_f = message.guild) === null || _f === void 0 ? void 0 : _f.id)}twitch live notify
+                    - toggle notifications on live channel list updates
             \`\`\`
             `.trim());
     }
@@ -250,8 +262,26 @@ class Twitch {
         const response = await message.channel.send(embed);
         guild.live = {
             chat: message.channel.id,
-            message: response.id
+            message: response.id,
+            notify: false
         };
+    }
+    livenotify(message) {
+        if (message.guild == null)
+            return;
+        const guild = this.data.guilds[message.guild.id];
+        if (guild === undefined || guild.live === undefined) {
+            message.channel.send(`Please first set up live updates. The command is '${BotUtils.getPrefix(message.guild.id)}twitch live'.`);
+            return;
+        }
+        if (guild.live.notify === true) {
+            message.channel.send("The Live Channels post will no longer notify when channels go live.");
+            guild.live.notify = false;
+        }
+        else {
+            message.channel.send("The Live Channels post will notify when channels go live.");
+            guild.live.notify = true;
+        }
     }
     async setLiveChannelOffline(channelId) {
         const liveChannel = this.activeChannels.get(channelId);
@@ -278,7 +308,7 @@ class Twitch {
                     index++;
                 }
                 if (embed.fields.length === 0) {
-                    embed.setDescription("");
+                    embed.setDescription("*It seems no one is streaming at the moment...*");
                 }
                 msg === null || msg === void 0 ? void 0 : msg.edit(embed);
             })
@@ -305,7 +335,7 @@ class Twitch {
             return;
         const guild = this.data.guilds[message.guild.id];
         if (guild === undefined || guild.chat === undefined) {
-            message.channel.send(`Please first assign a chat to notify in. The command is '${BotUtils.getPrefix()}twitch here'.`);
+            message.channel.send(`Please first assign a chat to notify in. The command is '${BotUtils.getPrefix(message.guild.id)}twitch here'.`);
             return;
         }
         if (guild.channels[channel] !== undefined) {
