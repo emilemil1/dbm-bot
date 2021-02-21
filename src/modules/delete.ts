@@ -1,12 +1,15 @@
-import { CommandModule, ModuleType } from "discord-dbm";
-import { Message, TextChannel, DMChannel, NewsChannel } from "discord.js";
+import { CommandModule, ModuleType, ReactionModule } from "discord-dbm";
+import { Message, TextChannel, DMChannel, NewsChannel, MessageReaction, User } from "discord.js";
 
-class Delete implements CommandModule {
+class Delete implements CommandModule, ReactionModule {
+    onLoad?: (() => Promise<void>) | undefined;
+    onShutdown?: (() => Promise<void>) | undefined;
     configuration = {
         name: "Delete",
         description: "",
-        type: [ModuleType.command],
-        commands: ["delete"]
+        type: [ModuleType.command, ModuleType.reaction],
+        commands: ["delete"],
+        reactions: ["❌"]
     }
     
     async onCommand(command: string[], message: Message): Promise<void> {
@@ -16,9 +19,17 @@ class Delete implements CommandModule {
         }
         this.searchForMessage(message.channel, myId).then(id => {
             if (id !== undefined) {
-                message.channel.bulkDelete([id]);
+                const channel = message.channel as TextChannel;
+                channel.bulkDelete([id]);
             }
         });
+    }
+
+    
+    async onReaction(reaction: MessageReaction, user: User): Promise<void> {
+        if (reaction.message.author.id !== reaction.message.guild?.me?.id) return;
+        if (user.id === reaction.message.guild?.me?.id) return;
+        reaction.message.delete();
     }
 
     async searchForMessage(channel: TextChannel | DMChannel | NewsChannel, clientUserId: string): Promise<string | undefined> {

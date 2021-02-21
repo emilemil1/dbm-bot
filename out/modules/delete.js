@@ -4,8 +4,9 @@ class Delete {
         this.configuration = {
             name: "Delete",
             description: "",
-            type: [ModuleType.command],
-            commands: ["delete"]
+            type: [ModuleType.command, ModuleType.reaction],
+            commands: ["delete"],
+            reactions: ["❌"]
         };
     }
     async onCommand(command, message) {
@@ -19,6 +20,14 @@ class Delete {
                 message.channel.bulkDelete([id]);
             }
         });
+    }
+    async onReaction(reaction, user) {
+        var _a, _b, _c, _d;
+        if (reaction.message.author.id !== ((_b = (_a = reaction.message.guild) === null || _a === void 0 ? void 0 : _a.me) === null || _b === void 0 ? void 0 : _b.id))
+            return;
+        if (user.id === ((_d = (_c = reaction.message.guild) === null || _c === void 0 ? void 0 : _c.me) === null || _d === void 0 ? void 0 : _d.id))
+            return;
+        reaction.message.delete();
     }
     async searchForMessage(channel, clientUserId) {
         var _a;

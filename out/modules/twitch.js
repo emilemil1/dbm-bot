@@ -72,15 +72,15 @@ class Twitch {
             return;
         }
         if (command.length === 2 && command[1] === "live") {
-            this.live(message);
+            await this.live(message);
             return;
         }
         if (command.length === 2) {
-            this.info(command[1].toLowerCase(), message);
+            await this.info(command[1].toLowerCase(), message);
             return;
         }
         if (command.length === 3 && command[1] === "follow") {
-            this.follow(command[2].toLowerCase(), message);
+            await this.follow(command[2].toLowerCase(), message);
             return;
         }
         if (command.length === 3 && command[1] === "live" && command[2] == "notify") {
@@ -88,7 +88,7 @@ class Twitch {
             return;
         }
         if (command.length === 3 && command[1] === "unfollow") {
-            this.unfollow(command[2].toLowerCase(), message);
+            await this.unfollow(command[2].toLowerCase(), message);
             return;
         }
     }

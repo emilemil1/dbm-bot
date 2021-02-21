@@ -8,16 +8,16 @@
     "url": "https://github.com/emilemil1/chew-bot.git"
   },
   "dependencies": {
-    "@types/node": "^13.13.12",
-    "@types/node-fetch": "^2.5.7",
+    "@types/node": "^13.13.45",
+    "@types/node-fetch": "^2.5.8",
     "@types/request": "^2.48.5",
     "dedent": "^0.7.0",
-    "discord-dbm": "^1.4.6",
-    "firebase": "^7.15.5",
-    "firebase-admin": "^8.12.1",
+    "discord-dbm": "^1.7.0",
+    "firebase": "^7.24.0",
+    "firebase-admin": "^9.5.0",
     "fuse.js": "^4.0.0-beta",
-    "node-fetch": "^2.6.0",
-    "snoowrap": "^1.21.0"
+    "node-fetch": "^2.6.1",
+    "snoowrap": "^1.22.0"
   },
   "author": "Emil Norén",
   "license": "ISC",
@@ -26,7 +26,7 @@
     "@typescript-eslint/eslint-plugin": "^2.34.0",
     "@typescript-eslint/parser": "^2.34.0",
     "eslint": "^6.8.0",
-    "typescript": "^3.9.5"
+    "typescript": "^3.9.9"
   },
   "type": "module",
   "scripts": {
