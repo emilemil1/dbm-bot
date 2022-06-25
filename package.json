@@ -16,7 +16,7 @@
     "firebase": "^7.24.0",
     "firebase-admin": "^9.5.0",
     "fuse.js": "^4.0.0-beta",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^2.6.7",
     "snoowrap": "^1.22.0"
   },
   "author": "Emil Norén",
